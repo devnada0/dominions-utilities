@@ -30,6 +30,7 @@
             padding: 15px;
             border-radius: 5px;
             background-color: #f9f9f9;
+            min-width: 300px; /* Ensure some width */
         }
         .player-setup legend {
             font-weight: bold;
@@ -43,6 +44,7 @@
             display: inline-block; /* Or block if needed */
             margin-right: 5px;
             vertical-align: middle;
+            font-size: 0.95em;
         }
         .form-group input[type="checkbox"] {
             margin-right: 3px;
@@ -55,6 +57,7 @@
             border: 1px solid #ccc;
             border-radius: 3px;
             box-sizing: border-box; /* Include padding in width */
+            vertical-align: middle;
          }
         .round-inputs-container {
             margin-top: 15px;
@@ -77,21 +80,24 @@
              font-weight: bold;
              text-align: left;
              padding-left: 5px;
+             font-size: 0.9em;
          }
          .round-row .round-input-header {
              flex: 1;
              font-weight: bold;
+             font-size: 0.9em;
          }
 
         .round-row input[type="text"] {
             flex: 1; /* Take remaining space */
-            max-width: 200px; /* Adjust as needed */
+            /* max-width: 200px; Let flexbox handle width */
         }
         .controls-container {
             display: flex;
             gap: 30px; /* Increased gap */
             align-items: flex-start; /* Align items to the top */
             margin-bottom: 20px;
+            flex-wrap: wrap; /* Allow wrapping */
         }
         .simulation-params, .action-buttons {
              margin-top: 0; /* Reset top margin if needed */
@@ -120,6 +126,7 @@
             min-height: 50px;
             white-space: pre-wrap; /* Keep line breaks */
             font-weight: bold;
+            margin-bottom: 20px; /* Space before docs/modal */
         }
         .error-input {
             background-color: pink !important;
@@ -189,6 +196,50 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        /* Documentation Styles */
+        details {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 15px;
+            background-color: #f9f9f9;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .docs-content {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .docs-content h4 {
+            margin-top: 12px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 3px;
+        }
+         .docs-content h4:first-of-type {
+             margin-top: 5px; /* Less margin for the first heading */
+         }
+        .docs-content p, .docs-content ul {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+        .docs-content ul {
+            padding-left: 25px; /* Indent list items */
+        }
+        .docs-content li {
+             margin-bottom: 4px;
+        }
+        .docs-content code {
+            background-color: #eee;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.95em;
+        }
     </style>
 </head>
 <body>
@@ -200,8 +251,8 @@
         <fieldset class="player-setup" id="player1-setup">
             <legend>Player 1 Setup</legend>
             <div class="form-group">
-                <input type="checkbox" id="p1_has_crown"> <label for="p1_has_crown">Crown of the Magi</label>
-                <input type="checkbox" id="p1_in_chorus"> <label for="p1_in_chorus">Chorus Master</label>
+                <input type="checkbox" id="p1_has_crown"> <label for="p1_has_crown">Crown of the Magi</label><br>
+                <input type="checkbox" id="p1_in_chorus"> <label for="p1_in_chorus">Chorus Master</label><br>
                 <input type="checkbox" id="p1_in_communion"> <label for="p1_in_communion">Communion Master</label>
             </div>
             <div class="form-group">
@@ -222,8 +273,8 @@
         <fieldset class="player-setup" id="player2-setup">
             <legend>Player 2 Setup</legend>
             <div class="form-group">
-                <input type="checkbox" id="p2_has_crown"> <label for="p2_has_crown">Crown of the Magi</label>
-                <input type="checkbox" id="p2_in_chorus"> <label for="p2_in_chorus">Chorus Master</label>
+                <input type="checkbox" id="p2_has_crown"> <label for="p2_has_crown">Crown of the Magi</label><br>
+                <input type="checkbox" id="p2_in_chorus"> <label for="p2_in_chorus">Chorus Master</label><br>
                 <input type="checkbox" id="p2_in_communion"> <label for="p2_in_communion">Communion Master</label>
             </div>
             <div class="form-group">
@@ -261,17 +312,15 @@
 
     <div id="result-area">Result will appear here.</div>
 
-</div>
-
-<!-- Help Modal -->
-<div id="helpModal" class="modal">
-  <div class="modal-content">
-     <div class="modal-header">
-        <span class="close-button" id="closeHelp">×</span>
-        <h2>Usage Help</h2>
-     </div>
-     <div class="modal-body">
-        <pre id="helpTextContainer">
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+         <div class="modal-header">
+            <span class="close-button" id="closeHelp">×</span>
+            <h2>Quick Help / Constants</h2>
+         </div>
+         <div class="modal-body">
+            <pre id="helpTextContainer">
 PLAYER SETUP:
  - Check boxes if player has effects: Crown of the Magi (0.70x), Chorus Master (1.25x), Communion Master (1.25x). Factors stack.
  - Select number of casting rounds (1-5).
@@ -283,19 +332,103 @@ SIMULATION OPTIONS:
 
 MECHANICS MODELLED:
  - Casting Point: Effect occurs at (Total Cast Time / 2) ± 500 Ticks (fixed), clamped.
- - Spell Duration: Base% converted to ticks, modified by stacking factors (Crown, Chorus, Communion).
+ - Spell Duration: Base% converted to ticks (7500/turn), modified by stacking factors (Crown, Chorus, Communion).
  - Next spell starts after previous spell's *full* duration elapses (plus initial delay if enabled).
  - Timestop: 10.0x slowdown for 10 turns (75000 ticks), merges overlaps.
 
 OUTPUT:
  - Estimated probability Player 1 finishes their last spell before Player 2.
-        </pre>
+            </pre>
+        </div>
+        <div class="modal-footer">
+            <button id="closeHelpButton">Close</button>
+        </div>
+      </div>
     </div>
-    <div class="modal-footer">
-        <button id="closeHelpButton">Close</button>
-    </div>
-  </div>
-</div>
+
+    <!-- Added Documentation Section -->
+    <details>
+        <summary>Documentation & How It Works</summary>
+        <div class="docs-content">
+            <h4>Purpose:</h4>
+            <p>This tool simulates the casting sequence of two mages (Player 1 vs Player 2) over a specified number of spell rounds to estimate the probability that Player 1 finishes their <em>last</em> spell before Player 2 finishes theirs. It models key mechanics like casting time modifiers, casting point variation, and Time Stop effects.</p>
+
+            <h4>How to Use (Inputs):</h4>
+            <p><strong>Player Setup (for both Player 1 and Player 2):</strong></p>
+            <ul>
+                <li><strong>Checkboxes (Crown/Chorus/Communion):</strong> Check the boxes if the mage benefits from these effects:
+                    <ul>
+                        <li><code>Crown of the Magi</code>: Multiplies total cast time by <code>0.70</code>.</li>
+                        <li><code>Chorus Master</code>: Multiplies total cast time by <code>1.25</code>.</li>
+                        <li><code>Communion Master</code>: Multiplies total cast time by <code>1.25</code>.</li>
+                        <li>Effects stack multiplicatively if multiple are checked.</li>
+                    </ul>
+                </li>
+                <li><strong>Number of Rounds:</strong> Select how many spells (1 to 5) the mage will attempt to cast in sequence.</li>
+                <li><strong>Round Inputs (Base %):</strong> For each round selected, enter the base casting time percentage for the spell:
+                    <ul>
+                        <li>Enter a number between <code>50</code> and <code>325</code>.</li>
+                        <li>Enter the text <code>'Timestop'</code> (case-insensitive) which uses a base time of <code>125%</code> and triggers the Time Stop slowdown effect.</li>
+                        <li>Leave blank to default to <code>100%</code>.</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p><strong>Simulation Options:</strong></p>
+            <ul>
+                <li><strong>Simulations:</strong> Enter the number of times to run the simulation (default: <code>10000</code>). Higher numbers give more statistically accurate results but take longer to compute.</li>
+                <li><strong>Simulate Round 1 Start Delay:</strong>
+                    <ul>
+                        <li><strong>Checked (Default: ON):</strong> Adds a random delay between <code>0</code> and <code>999</code> ticks (based on Dom5 reverse-engineering notes) before <em>each</em> player's <em>first</em> spell begins casting. This randomness is applied independently to each player in each simulation run. It aims to approximate minor variations in when units receive their first "orders" or start processing, but does <em>not</em> model the full initial delay often observed before <em>any</em> unit acts in a battle.</li>
+                        <li><strong>Unchecked:</strong> Both players start their first spell exactly at tick 0. Useful for direct comparison without initial timing randomness.</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Mechanics Modeled:</h4>
+            <ul>
+                <li><strong>Base Cast Time:</strong> The entered Base % is converted into game ticks: <code>(Base % / 100.0) * 7500</code> ticks.</li>
+                <li><strong>Time Modifiers:</strong> The base tick duration is multiplied by the factors for Crown of the Magi (<code>0.70</code>), Chorus Master (<code>1.25</code>), and Communion Master (<code>1.25</code>) if applicable. These stack. The final modified time is <code>T_i</code>.</li>
+                <li><strong>Casting Point Variation:</strong>
+                    <ul>
+                        <li>A spell's effect notionally occurs halfway through its <em>total</em> modified duration (<code>T_i / 2</code>).</li>
+                        <li>A random variation is added to this halfway point: <code>±</code> a random value up to <code>500</code> ticks.</li>
+                        <li>The <em>actual finish time</em> is calculated as: <code>Start Time + (T_i / 2) + Random Offset</code>.</li>
+                        <li>This actual finish time is <em>clamped</em>: it cannot be earlier than the <code>Start Time</code> and cannot be later than <code>Start Time + T_i</code>.</li>
+                    </ul>
+                </li>
+                <li><strong>Spell Sequencing:</strong> The <em>next</em> spell in a mage's sequence begins casting only after the <em>full modified duration</em> (<code>T_i</code>) of the previous spell has elapsed relative to that previous spell's start time. The random variation in finish time only affects <em>when</em> the spell effect happens, not when the <em>next</em> spell begins.</li>
+                <li><strong>Time Stop:</strong>
+                    <ul>
+                        <li>If a spell is 'Timestop', it adds a Time Stop event when its <em>actual finish time</em> occurs.</li>
+                        <li>The Time Stop effect slows the opponent's perception of time by a factor of <code>10.0</code> for <code>10</code> turns (<code>75000</code> ticks).</li>
+                        <li>Overlapping Time Stop durations from multiple spells (by the same caster) are merged into a single continuous slowed interval.</li>
+                        <li>The simulator correctly calculates how much <em>absolute</em> time the slowed opponent needs to pass to accumulate the necessary <em>unslowed</em> ticks for their spell durations and casting point variation offsets.</li>
+                    </ul>
+                </li>
+                <li><strong>Round 1 Start Delay:</strong> If enabled, a random offset (<code>0</code> to <code>999</code> ticks) is added to the start time of the <em>first</em> spell cast by each player.</li>
+            </ul>
+
+            <h4>Output:</h4>
+            <ul>
+                <li>The primary result is the estimated probability that Player 1's <em>final</em> spell finishes (i.e., its calculated <em>actual finish time</em> occurs) before Player 2's <em>final</em> spell finishes.</li>
+                <li>The output also shows the raw count of simulations where Player 1 finished first and the total number of simulations run.</li>
+            </ul>
+
+            <h4>Limitations (What is NOT Modeled):</h4>
+            <ul>
+                <li>Fatigue gain, passing out, or afflictions from casting.</li>
+                <li>Unit HP, death, or interruption from damage.</li>
+                <li>Stun, paralysis, or other disabling effects.</li>
+                <li>Other speed modifiers (e.g., Quickness, Slow, unit speed, Haste/Sloth).</li>
+                <li>Targeting logic, range limitations, or line of sight.</li>
+                <li>Battlefield movement or positioning.</li>
+                <li>Specific spell effects beyond Time Stop's slowdown (e.g., damage, buffs, summons).</li>
+                <li>The full "battle setup" delay before any unit takes its first action.</li>
+                <li>Any specific AI decisions or script deviations.</li>
+            </ul>
+        </div>
+    </details>
 
 
 <script>
@@ -429,19 +562,11 @@ OUTPUT:
             // Ensure we only process points at or after the start time
              if (t1 < start_absolute_time - EPSILON) continue;
 
-             // If t1 is significantly later than current_abs_time, it implies a gap.
-             // We should process the segment from current_abs_time up to t1 first.
-             // However, the logic below handles this by checking the slow factor at the start (or midpoint)
-             // of the [t1, t2] interval. If current_abs_time is already within a slow zone that started before t1,
-             // that's handled correctly.
-
              const t2 = (i + 1 < sorted_events.length) ? sorted_events[i+1] : Infinity;
 
              // Skip zero-duration segments
              if (t2 - t1 <= EPSILON) continue;
 
-             // Determine slow factor for the interval [t1, t2)
-             // Use a point slightly after t1 to check the factor
              const mid_point_for_check = t1 + EPSILON; // Check status just after t1 starts
              const slow_factor = get_slow_factor(mid_point_for_check);
 
@@ -692,7 +817,8 @@ OUTPUT:
 
     function setControlsState(disabled) {
         runButton.disabled = disabled;
-        helpButton.disabled = disabled;
+        // Keep help button always enabled
+        // helpButton.disabled = disabled;
         numSimEntry.disabled = disabled;
         delayCheck.disabled = disabled;
         p1NumRoundsSelect.disabled = disabled;
@@ -840,6 +966,8 @@ MECHANICS MODELLED:
 
 OUTPUT:
  - Estimated probability Player 1 finishes their last spell before Player 2.
+
+(See full documentation below the results area on the main page for more details and limitations.)
         `;
         helpModal.style.display = "block";
     });
