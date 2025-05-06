@@ -1,1 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominions 6 Collision Calculator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            line-height: 1.6;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 95vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            max-width: 550px;
+            width: 90%;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: auto 1fr; /* Label, Input */
+            gap: 10px 12px;
+            align-items: center;
+            margin-bottom: 25px;
+            text-align: left; /* Align labels left */
+        }
+        .input-grid label {
+            grid-column: 1;
+            text-align: right;
+            font-size: 0.95em;
+            color: #444;
+        }
+        .input-grid input[type="number"] {
+            grid-column: 2;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100px; /* Fixed width */
+        }
+        button#calculate_button {
+             padding: 10px 20px;
+             font-size: 1.05em;
+             font-weight: 500;
+             cursor: pointer;
+             border: none;
+             border-radius: 5px;
+             background-color: #28a745; /* Green */
+             color: white;
+             transition: background-color 0.2s ease;
+             margin-bottom: 20px;
+        }
+        button#calculate_button:hover {
+             background-color: #218838;
+        }
+        button#calculate_button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #result-area {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 1em;
+            white-space: pre;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            min-height: 70px;
+            line-height: 1.5;
+            text-align: center;
+            margin-bottom: 25px; /* Space before docs */
+        }
+        .error-input {
+            background-color: pink !important;
+            border-color: red !important;
+        }
 
+        /* Documentation Styles */
+        details {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 15px;
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .docs-content {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .docs-content h4 { margin-top: 12px; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; font-weight: bold;}
+        .docs-content h4:first-of-type { margin-top: 5px; }
+        .docs-content p, .docs-content ul { margin-top: 0; margin-bottom: 8px; }
+        .docs-content ul { padding-left: 25px; }
+        .docs-content li { margin-bottom: 4px; }
+        .docs-content code { background-color: #eee; padding: 1px 4px; border-radius: 3px; font-family: Consolas, "Courier New", monospace; font-size: 0.95em;}
+        /* Style links within docs */
+        .docs-content a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .docs-content a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dominions 6 Collision Calculator</h1>
+
+    <div class="input-grid">
+        <label for="our_val">Your chassis value:</label>
+        <input type="number" id="our_val" min="1" step="1">
+
+        <label for="opp_val">Opponent chassis value:</label>
+        <input type="number" id="opp_val" min="1" step="1">
+
+        <label for="trials">Simulations:</label>
+        <input type="number" id="trials" min="1" step="1" placeholder="100000">
+    </div>
+
+    <button id="calculate_button">Calculate</button>
+
+    <pre id="result-area">Enter values and click Calculate.</pre>
+
+    <details>
+        <summary>Documentation & How It Works</summary>
+        <!-- *** UPDATED DOCUMENTATION TEXT BELOW *** -->
+        <div class="docs-content">
+            <h4>Purpose:</h4>
+            <p>This tool simulates the Dominions 6 unit collision rules to estimate the outcome percentages when two units potentially collide.</p>
+
+            <h4>Inputs:</h4>
+            <ul>
+                <li><strong>Your chassis value:</strong> The printed HP value of your unit's chassis (must be a positive integer). Chassis values for different units can be found <a href="https://illwiki.com/dom5/user/loggy/chassisvalue" target="_blank" rel="noopener noreferrer">here on the Illwiki</a>.</li>
+                <li><strong>Opponent chassis value:</strong> The printed HP value of the opponent unit's chassis (must be a positive integer).</li>
+                <li><strong>Simulations:</strong> The number of trials to run (default: 100,000). More trials increase accuracy but take longer.</li>
+            </ul>
+
+            <h4>Mechanics Simulated:</h4>
+            <p>The mechanics simulated are based on the understanding of collision rules primarily derived from the <a href="https://illwiki.com/dom5/map-movement#Collisions" target="_blank" rel="noopener noreferrer">Illwiki page on Map Movement & Collisions</a>.</p>
+            <ul>
+                <li><strong>Slip Check:</strong> Before any collision is calculated, both units must independently pass a "slip check". Each unit slips if its `chassis_value < random(0-349)`. If *both* units slip past each other in a given trial, the "Slip" counter is incremented, and no collision occurs for that trial.</li>
+                <li><strong>Collision Value Calculation:</strong> If at least one unit does *not* slip, a collision value is calculated for both units involved:
+                    <code>Collision Value = (Chassis Value / 10) + Exploding_Die_Roll(Chassis Value)</code>
+                    <ul><li><code>Exploding_Die_Roll(N)</code>: Roll an N-sided die. If the maximum value (N) is rolled, add it to the total and roll again. Continue until a non-N value is rolled, adding it to the total.</li></ul>
+                </li>
+                <li><strong>Comparison:</strong> The two collision values are compared.
+                    <ul>
+                        <li>If Your Collision Value > Opponent Collision Value, it's a "Win".</li>
+                        <li>Otherwise (Your Value <= Opponent Value), it's a "Loss" (ties go to the opponent, per Illwiki documentation interpretation).</li>
+                    </ul>
+                </li>
+            </ul>
+
+             <h4>Output Percentages:</h4>
+             <ul>
+                 <li><strong>Win %:</strong> Percentage of total non-slip encounters where your unit won the collision (calculated as `Wins / (Wins + Losses)` if we interpret the original script's win/loss percentages this way, or `Wins / Encounters` if `Encounters = Wins + Losses + Slips` was intended. The current implementation follows the latter based on the Python script).</li>
+                 <li><strong>Loss %:</strong> Percentage of total non-slip encounters where your unit lost the collision or tied (calculated similarly to Win %).</li>
+                 <li><strong>Slip %:</strong> Percentage of total trials where both units slipped past each other (calculated as `Slips / Total Trials`).</li>
+                 <li>Note: Due to the specific calculation method from the source script (`Win/(W+L+S)`, `Loss/(W+L+S)`, `Slips/Trials`), the three percentages might not sum perfectly to 100%.</li>
+             </ul>
+
+            <h4>Limitations:</h4>
+            <ul>
+                <li>Does not account for unit Size difference (which heavily influences collisions).</li>
+                <li>Does not account for Defense skill, shields, or weapon effects (e.g., length, special properties).</li>
+                <li>Does not model trampling.</li>
+                <li>Assumes a direct, head-on collision scenario.</li>
+            </ul>
+        </div>
+        <!-- *** END OF UPDATED DOCUMENTATION TEXT *** -->
+    </details>
+
+</div> <!-- End .container -->
+
+<script>
+    // --- Simulation Constants ---
+    const TRIALS_DEFAULT = 100000;
+    const SLIP_THRESHOLD = 350; // random(0-349) is < 350
+
+    // --- Simulation Logic (Translated) ---
+    function openEndedDieRoll(N) { if (N <= 0) return 0; let total = 0; while (true) { const roll = Math.floor(Math.random() * N) + 1; total += roll; if (roll !== N) { break; } } return total; }
+    function collisionValue(chassisValue) { if (chassisValue <= 0) return 0; const dieResult = openEndedDieRoll(chassisValue); return chassisValue / 10.0 + dieResult; }
+    function simulateCollisions(ourVal, oppVal, trials) { let ourWins = 0; let oppWins = 0; let slips = 0; if (ourVal <= 0 || oppVal <= 0 || trials <= 0) { return { win_percentage: 0, loss_percentage: 0, slip_percentage: 0 }; } for (let i = 0; i < trials; i++) { const ourSlipCheck = Math.floor(Math.random() * SLIP_THRESHOLD); const oppSlipCheck = Math.floor(Math.random() * SLIP_THRESHOLD); if (ourVal < ourSlipCheck && oppVal < oppSlipCheck) { slips++; continue; } if (collisionValue(ourVal) > collisionValue(oppVal)) { ourWins++; } else { oppWins++; } } const encounters = ourWins + oppWins + slips; const winP = encounters > 0 ? (ourWins / encounters) * 100 : 0; const lossP = encounters > 0 ? (oppWins / encounters) * 100 : 0; const slipP = trials > 0 ? (slips / trials) * 100 : 0; return { win_percentage: winP, loss_percentage: lossP, slip_percentage: slipP, }; }
+
+    // --- GUI Interaction ---
+    const ourEntry = document.getElementById('our_val'); const oppEntry = document.getElementById('opp_val'); const trialsEntry = document.getElementById('trials'); const calcButton = document.getElementById('calculate_button'); const resultArea = document.getElementById('result-area');
+    async function runSimulation() { ourEntry.classList.remove('error-input'); oppEntry.classList.remove('error-input'); trialsEntry.classList.remove('error-input'); resultArea.textContent = "Calculating..."; calcButton.disabled = true; await new Promise(resolve => setTimeout(resolve, 0)); let ourVal, oppVal, trials; let isValid = true; try { ourVal = parseInt(ourEntry.value); oppVal = parseInt(oppEntry.value); const trialsTxt = trialsEntry.value.trim(); trials = trialsTxt ? parseInt(trialsTxt) : TRIALS_DEFAULT; if (isNaN(ourVal) || ourVal <= 0) { ourEntry.classList.add('error-input'); isValid = false; } if (isNaN(oppVal) || oppVal <= 0) { oppEntry.classList.add('error-input'); isValid = false; } if (isNaN(trials) || trials <= 0) { trialsEntry.classList.add('error-input'); isValid = false; } if (!isValid) { throw new Error("Please enter positive integers for chassis values and trials."); } } catch (e) { resultArea.textContent = e.message || "Invalid input."; calcButton.disabled = false; return; } try { const results = simulateCollisions(ourVal, oppVal, trials); const output = `Win:  ${results.win_percentage.toFixed(2)}%\n` + `Loss: ${results.loss_percentage.toFixed(2)}%\n` + `Slip: ${results.slip_percentage.toFixed(2)}%`; resultArea.textContent = output; } catch (error) { console.error("Simulation error:", error); resultArea.textContent = "An error occurred during simulation."; } finally { calcButton.disabled = false; } }
+    calcButton.addEventListener('click', runSimulation);
+</script>
+
+</body>
+</html>
