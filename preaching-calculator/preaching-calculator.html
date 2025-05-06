@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominions 6 – Preaching Odds</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.4;
+            padding: 15px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 550px; /* Slightly wider for docs */
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: auto 1fr; /* Label, Controls */
+            gap: 10px 15px; /* Row gap, Column gap */
+            align-items: center;
+            margin-bottom: 15px; /* Space before output */
+        }
+        .form-grid label {
+            grid-column: 1;
+            text-align: right;
+            font-size: 0.95em;
+        }
+        .form-grid > div, /* Container for multiple controls in one cell */
+        .form-grid > input,
+        .form-grid > button {
+             grid-column: 2;
+        }
+
+        input[type="number"] {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        .dom-input {
+            width: 70px;
+        }
+        .sims-input {
+            width: 90px;
+        }
+        .priest-input {
+            width: 50px;
+            margin-left: 2px; /* Spacing after Hx label */
+        }
+
+        .priest-row {
+            display: flex;
+            gap: 10px; /* Spacing between Hx inputs */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping if needed */
+        }
+        .priest-cell {
+            display: flex;
+            align-items: center;
+        }
+        .priest-cell label {
+             margin-right: 3px;
+             font-size: 0.95em;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+             padding: 6px 12px;
+             cursor: pointer;
+             border: 1px solid #aaa;
+             border-radius: 4px;
+             background-color: #e7e7e7;
+        }
+         button:hover {
+              background-color: #dcdcdc;
+         }
+
+        #output-area {
+            /* margin-top: 15px; removed, spacing handled by form-grid margin */
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9em; /* ~10pt */
+            white-space: pre;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 200px; /* Approx 12 lines + padding */
+            width: 100%; /* Fill container */
+            box-sizing: border-box;
+            overflow-x: auto;
+            line-height: 1.3; /* Adjust for readability */
+            margin-bottom: 15px; /* Space before docs */
+        }
+
+        .error-input {
+            background-color: pink !important;
+            border-color: red !important;
+        }
+
+        /* Checkbox alignment */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Documentation Styles */
+        details {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .docs-content {
+            font-size: 0.9em;
+        }
+        .docs-content h4 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .docs-content p, .docs-content ul {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+        .docs-content code {
+            background-color: #eee;
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dominions 6 – Preaching Odds</h1>
+
+    <div class="form-grid">
+        <label for="start_dom">Starting dominion (+/–):</label>
+        <div class="controls-row">
+            <!-- Changed step to 1 for integer input -->
+            <input type="number" id="start_dom" class="dom-input" value="0" step="1">
+            <label for="temple" class="checkbox-label">
+                <input type="checkbox" id="temple" checked> Temple present
+            </label>
+        </div>
+
+
+        <label>Priests (enter counts):</label>
+        <div class="priest-row">
+            <div class="priest-cell">
+                <label for="h1_count">H1:</label>
+                <input type="number" id="h1_count" class="priest-input" value="0" min="0" step="1">
+            </div>
+            <div class="priest-cell">
+                <label for="h2_count">H2:</label>
+                <input type="number" id="h2_count" class="priest-input" value="0" min="0" step="1">
+            </div>
+             <div class="priest-cell">
+                <label for="h3_count">H3:</label>
+                <input type="number" id="h3_count" class="priest-input" value="0" min="0" step="1">
+            </div>
+             <div class="priest-cell">
+                <label for="h4_count">H4:</label>
+                <input type="number" id="h4_count" class="priest-input" value="0" min="0" step="1">
+            </div>
+        </div>
+
+        <label for="sims">Trials:</label>
+         <div class="controls-row">
+             <input type="number" id="sims" class="sims-input" value="20000" min="1" step="1">
+             <button id="run_button">Run</button>
+             <button id="reset_button">Reset</button>
+         </div>
+
+    </div>
+
+    <pre id="output-area">Enter parameters and click Run.</pre>
+
+    <!-- Added Documentation Section -->
+    <details>
+        <summary>Documentation & How It Works</summary>
+        <div class="docs-content">
+            <p>This tool simulates the probability distribution of dominion gain from preaching in a single province over one turn in Dominions 6.</p>
+
+            <h4>Inputs:</h4>
+            <ul>
+                <li><strong>Starting dominion (+/–):</strong> Enter the current number of candles in the province. Positive values represent your candles, negative values represent enemy candles (e.g., -3 means 3 hostile candles and 0 friendly). Must be an integer.</li>
+                <li><strong>Temple present:</strong> Check if a temple exists in the province. This adds +0.5 to the effective preach level of all priests.</li>
+                <li><strong>Priests (enter counts):</strong> Enter the number of priests of each holy level (H1 to H4) that will be preaching this turn.</li>
+                <li><strong>Trials:</strong> The number of simulations to run. More trials give more precise results but take longer. 20,000 is usually sufficient.</li>
+            </ul>
+
+            <h4>Mechanics Simulated:</h4>
+            <ul>
+                <li><strong>Priest Order:</strong> Priests preach in a random order each turn (simulation).</li>
+                <li><strong>Effective Level (eff):</strong> Priest level (e.g., 1, 2, 3, 4) plus 0.5 if a temple is present.</li>
+                <li><strong>Dominion Cap Check:</strong> A priest cannot preach if the total candles (friendly + enemy) is already greater than or equal to twice their effective level (<code>total_candles >= 2 * eff</code>).</li>
+                <li><strong>Preach Roll Chance (p):</strong> The probability for a successful preach is <code>max(0, min(1, 0.3 * eff - 0.05 * enemy))</code>, where <code>enemy</code> is the number of hostile candles currently present when the priest attempts to preach.</li>
+                <li><strong>Preach Effect:</strong> If successful, one hostile candle is removed first. If no hostile candles remain, one friendly candle is added.</li>
+                <li><strong>Gain:</strong> The 'gain' reported is the total number of successful preach rolls performed during the turn. This corresponds to the net change in candle difference (Your Candles - Enemy Candles). For example, going from -1 to +1 is a gain of 2.</li>
+            </ul>
+
+             <h4>Output Table:</h4>
+             <ul>
+                 <li><strong>gain:</strong> The total number of successful preaches (+Net Candle Change) achieved in a simulated turn.</li>
+                 <li><strong>exact %:</strong> The percentage of simulation trials where exactly that amount of gain occurred.</li>
+                 <li><strong>≥ gain %:</strong> The cumulative percentage of simulation trials where the gain was at least that amount (this value or higher).</li>
+             </ul>
+        </div>
+    </details>
+
+</div>
+
+<script>
+    // --- Mechanics (Translated from Python) ---
+
+    // Fisher-Yates (Knuth) Shuffle
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+        }
+    }
+
+    function simulate_once(start_dom, hostile, eff_levels) {
+        // Create a copy to shuffle without modifying the original passed array reference
+        const shuffled_levels = [...eff_levels];
+        shuffleArray(shuffled_levels);
+
+        let friendly = start_dom; // our candles
+        let enemy = hostile;      // hostile candles still present
+        let gained = 0;
+
+        for (const eff of shuffled_levels) {
+            // total candles in province right now
+            const total_candles = friendly + enemy;
+            if (total_candles >= 2 * eff) {
+                continue; // capped → this priest can’t help
+            }
+
+            // preach roll
+            const p = Math.max(0.0, Math.min(1.0, 0.3 * eff - 0.05 * enemy));
+            if (Math.random() < p) {
+                gained += 1;
+                if (enemy > 0) { // first remove hostile candle
+                    enemy -= 1;
+                } else { // then add friendly candle
+                    friendly += 1;
+                }
+            }
+        }
+        return gained;
+    }
+
+    function preach_distribution(dom, hostile, priests_by_lvl, temple, sims = 20000) {
+        const eff_levels = [];
+        for (const level in priests_by_lvl) {
+            const count = priests_by_lvl[level];
+            const eff_base = parseFloat(level); // Ensure level is a number
+            for (let i = 0; i < count; i++) {
+                eff_levels.push(eff_base + (temple ? 0.5 : 0.0));
+            }
+        }
+
+        // Use a Map to count results (similar to Python's Counter)
+        const results = new Map();
+        for (let i = 0; i < sims; i++) {
+            const gained = simulate_once(dom, hostile, eff_levels);
+            results.set(gained, (results.get(gained) || 0) + 1);
+        }
+
+        const distribution = {};
+        // Convert Map to object with percentages and sort keys numerically
+        const sortedKeys = Array.from(results.keys()).sort((a, b) => a - b);
+        for (const gained of sortedKeys) {
+            distribution[gained] = results.get(gained) / sims;
+        }
+
+        return distribution;
+    }
+
+    // --- GUI Interaction ---
+
+    const domInput = document.getElementById('start_dom');
+    const templeCheckbox = document.getElementById('temple');
+    const hLevelInputs = {
+        1: document.getElementById('h1_count'),
+        2: document.getElementById('h2_count'),
+        3: document.getElementById('h3_count'),
+        4: document.getElementById('h4_count'),
+    };
+    const simsInput = document.getElementById('sims');
+    const runButton = document.getElementById('run_button');
+    const resetButton = document.getElementById('reset_button');
+    const outputArea = document.getElementById('output-area');
+
+    function resetForm() {
+        domInput.value = "0";
+        templeCheckbox.checked = true;
+        for (const level in hLevelInputs) {
+            hLevelInputs[level].value = "0";
+            hLevelInputs[level].classList.remove('error-input'); // Also remove error style on reset
+        }
+        simsInput.value = "20000";
+        simsInput.classList.remove('error-input'); // Remove error style on reset
+        domInput.classList.remove('error-input'); // Remove error style on reset
+        outputArea.textContent = "Enter parameters and click Run.";
+    }
+
+    // --- runSimulation function with parseInt for Dominion ---
+    function runSimulation() {
+        // 1. Clear previous error visual feedback ONLY
+        domInput.classList.remove('error-input');
+        simsInput.classList.remove('error-input');
+        for(const lvl in hLevelInputs) {
+            hLevelInputs[lvl].classList.remove('error-input');
+        }
+        // Set status message
+        outputArea.textContent = "Calculating...";
+
+        let dom, sims, priests = {}, temple;
+        let isValid = true;
+
+        try {
+            // Use parseInt for dominion input
+            dom = parseInt(domInput.value);
+            if (isNaN(dom)) { // Check if parsing failed (e.g., empty or non-numeric)
+                domInput.classList.add('error-input');
+                throw new Error("Invalid Starting Dominion value (must be an integer).");
+            }
+
+            sims = parseInt(simsInput.value);
+            if (isNaN(sims) || sims <= 0) {
+                simsInput.classList.add('error-input');
+                throw new Error("Trials must be a positive integer.");
+            }
+
+            let totalPriests = 0;
+            for (const level in hLevelInputs) {
+                const count = parseInt(hLevelInputs[level].value);
+                if (isNaN(count) || count < 0) {
+                    hLevelInputs[level].classList.add('error-input');
+                    const errorMsg = isNaN(count) ? `Missing count for H${level} priests.` : `Invalid count for H${level} priests (cannot be negative).`;
+                    throw new Error(errorMsg);
+                }
+                priests[level] = count;
+                totalPriests += count;
+            }
+
+            if (totalPriests === 0) {
+                 for(const lvl in hLevelInputs) {
+                     if (!hLevelInputs[lvl].classList.contains('error-input')) {
+                        hLevelInputs[lvl].classList.add('error-input');
+                     }
+                 }
+                 throw new Error("At least one priest is required.");
+            }
+
+            temple = templeCheckbox.checked;
+
+        } catch (e) {
+            isValid = false;
+            showError(e.message);
+            return;
+        }
+
+        if (isValid) {
+            const start_dom = (dom >= 0) ? dom : 0;
+            // No need for Math.round now that dom is integer
+            const hostile = (dom < 0) ? Math.abs(dom) : 0;
+
+            try {
+                const dist = preach_distribution(start_dom, hostile, priests, temple, sims);
+                displayResults(dom, temple, priests, sims, dist);
+            } catch (simError) {
+                 console.error("Simulation internal error:", simError);
+                 showError("An internal error occurred during simulation.");
+            }
+        }
+    }
+    // --- End of runSimulation function ---
+
+
+    function showError(errorMessage) {
+        outputArea.textContent = `Input error: ${errorMessage}\n`;
+    }
+
+    function displayResults(dom, temple, priests, sims, dist) {
+        let output = "";
+
+        // Header
+        const domSign = dom >= 0 ? '+' : '';
+        // Ensure dom is displayed as the integer entered
+        output += `Dom=${domSign}${dom}, Temple=${temple ? 'Yes' : 'No'}, `;
+        const priestStrings = [];
+        for (const level in priests) {
+            if (priests[level] > 0) {
+                priestStrings.push(`${priests[level]}h${level}`);
+            }
+        }
+        output += priestStrings.join(", ");
+        output += `, Trials=${sims.toLocaleString()}\n`;
+        output += " gain | exact % | ≥ gain %\n";
+        output += " -----+---------+---------\n";
+
+        // Build cumulative "≥ gain" from the top down
+        const gains = Object.keys(dist).map(Number).sort((a, b) => b - a);
+        let running = 0.0;
+        const geq = {};
+        for (const g of gains) {
+            running += dist[g];
+            geq[g] = running;
+        }
+
+        // Generate rows low -> high
+        const sortedGains = Object.keys(dist).map(Number).sort((a, b) => a - b);
+        if (sortedGains.length === 0 && Object.keys(priests).some(lvl => priests[lvl] > 0)) {
+             // Handle case where simulation runs but results in zero gain every time
+             // Check if the distribution is empty OR only contains gain 0
+             if (!dist.hasOwnProperty(0)) {
+                output += "  (No gain possible in any trial)\n";
+             } else {
+                 // If gain 0 is the only result
+                 const exact = dist[0] * 100;
+                 const at_least = geq[0] * 100;
+                 const gainStr = `+0`.padEnd(3);
+                 const exactStr = exact.toFixed(2).padStart(7) + '%';
+                 const atleastStr = at_least.toFixed(2).padStart(7) + '%';
+                 output += `  ${gainStr}| ${exactStr} | ${atleastStr}\n`;
+             }
+
+        } else if (sortedGains.length === 0) {
+            // Case where no priests were entered (should be caught by validation, but good fallback)
+             output += "  (Enter priest counts and run simulation)\n";
+        }
+        else {
+            for (const g of sortedGains) {
+                const exact = dist[g] * 100;
+                const at_least = geq[g] * 100;
+                const gainStr = `+${g}`.padEnd(3);
+                const exactStr = exact.toFixed(2).padStart(7) + '%';
+                const atleastStr = at_least.toFixed(2).padStart(7) + '%';
+                output += `  ${gainStr}| ${exactStr} | ${atleastStr}\n`;
+            }
+        }
+
+        outputArea.textContent = output;
+    }
+
+
+    // --- Event Listeners ---
+    runButton.addEventListener('click', runSimulation);
+    resetButton.addEventListener('click', resetForm);
+
+    // --- Initial State ---
+    resetForm(); // Set defaults on load
+
+</script>
+
+</body>
+</html>
