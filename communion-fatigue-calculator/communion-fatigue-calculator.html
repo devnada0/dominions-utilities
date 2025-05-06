@@ -15,9 +15,11 @@
             display: flex;
             justify-content: center;
         }
+        /* Main container using CSS Grid */
         .container {
-            display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            display: grid;
+            grid-template-columns: minmax(280px, 1fr) 2fr; /* Left column flexible, Right column takes more space */
+            grid-template-rows: auto auto; /* Row for main content, row for docs */
             gap: 20px;
             max-width: 1200px;
             width: 100%;
@@ -27,44 +29,52 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .input-column {
-            flex: 1; /* Takes up space */
-            min-width: 250px; /* Minimum width before wrapping */
+            grid-column: 1 / 2; /* Place in first column */
+            grid-row: 1 / 2;    /* Place in first row */
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
         .output-column {
-            flex: 2; /* Takes up more space */
-            min-width: 400px;
+            grid-column: 2 / 3; /* Place in second column */
+            grid-row: 1 / 2;    /* Place in first row */
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px; /* Space between text output and plot */
+            min-height: 0; /* Prevent output column from stretching unnecessarily */
         }
+        .docs-container {
+             grid-column: 1 / -1; /* Span both columns */
+             grid-row: 2 / 3;     /* Place in second row */
+             margin-top: 10px; /* Add some space above docs */
+        }
+
         fieldset {
             border: 1px solid #ccc;
             padding: 10px 15px 15px 15px;
             border-radius: 5px;
             background-color: #f9f9f9;
+            margin-bottom: 5px; /* Consistent spacing */
         }
         legend {
-            font-weight: bold;
             padding: 0 5px;
             font-size: 0.95em;
         }
         .input-grid {
              display: grid;
              grid-template-columns: auto 1fr; /* Label, Input */
-             gap: 5px 10px; /* Row gap, Column gap */
+             gap: 5px 10px;
              align-items: center;
         }
         .input-grid label {
             grid-column: 1;
             text-align: left;
             font-size: 0.9em;
+            white-space: nowrap; /* Prevent labels from wrapping */
         }
         .input-grid input[type="number"] {
             grid-column: 2;
-            width: 80px; /* Fixed width for number inputs */
+            width: 80px;
             padding: 4px;
             border: 1px solid #ccc;
             border-radius: 3px;
@@ -75,13 +85,21 @@
             gap: 8px;
             margin-top: 10px;
         }
-        .sim-controls div { /* For checkbox alignment */
+        .sim-controls div {
             display: flex;
             align-items: center;
         }
          .sim-controls input[type="checkbox"] {
             margin-right: 5px;
          }
+         /* Target the label specifically for the checkbox */
+         .sim-controls label[for="relief_spell_effect"] {
+              font-size: 0.9em; /* Match other labels */
+              white-space: normal; /* Allow wrapping if needed */
+         }
+        .sim-controls .button-group {
+             margin-top: 5px;
+        }
         .sim-controls button {
              padding: 8px 15px;
              cursor: pointer;
@@ -101,24 +119,62 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            min-height: 150px; /* Ensure some space */
+            min-height: 150px;
             overflow-x: auto;
+            flex-shrink: 0; /* Prevent text area from shrinking too much */
         }
         #plot {
             border: 1px solid #ccc;
             border-radius: 4px;
-            min-height: 450px; /* Minimum plot height */
+            min-height: 400px; /* Adjusted min height */
             flex-grow: 1; /* Allow plot to take remaining space */
         }
         .error-input {
             background-color: pink !important;
             border-color: red !important;
         }
+        /* Documentation Styles */
+        details {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 15px;
+            background-color: #f9f9f9;
+        }
+        summary {
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .docs-content {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .docs-content h4 {
+            margin-top: 12px; margin-bottom: 6px;
+            border-bottom: 1px solid #eee; padding-bottom: 3px;
+        }
+        .docs-content h4:first-of-type { margin-top: 5px; }
+        .docs-content p, .docs-content ul { margin-top: 0; margin-bottom: 8px; }
+        .docs-content ul { padding-left: 25px; }
+        .docs-content li { margin-bottom: 4px; }
+        .docs-content code { background-color: #eee; padding: 1px 4px; border-radius: 3px; font-family: Consolas, "Courier New", monospace; font-size: 0.95em;}
+
+        /* Responsive: Stack columns on smaller screens */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr; /* Single column */
+                grid-template-rows: auto auto auto; /* Inputs, Outputs, Docs */
+            }
+            .input-column { grid-column: 1 / -1; grid-row: 1 / 2; }
+            .output-column { grid-column: 1 / -1; grid-row: 2 / 3; }
+            .docs-container { grid-column: 1 / -1; grid-row: 3 / 4; }
+        }
+
     </style>
 </head>
 <body>
 
 <div class="container">
+
     <div class="input-column">
         <fieldset>
             <legend>Spell Settings</legend>
@@ -135,8 +191,8 @@
             <div class="input-grid">
                 <label for="caster_lvl">Caster Level:</label><input type="number" id="caster_lvl" value="1" step="1" min="0">
                 <label for="slave_lvl">Slave Level:</label><input type="number" id="slave_lvl" value="1" step="1" min="0">
-                <label for="n_slaves"># Slaves:</label><input type="number" id="n_slaves" value="8" step="1" min="0">
-                <label for="n_masters"># Masters:</label><input type="number" id="n_masters" value="4" step="1" min="1">
+                <label for="n_slaves">Number of Slaves:</label><input type="number" id="n_slaves" value="8" step="1" min="0">
+                <label for="n_masters">Number of Masters:</label><input type="number" id="n_masters" value="4" step="1" min="1">
             </div>
         </fieldset>
 
@@ -158,22 +214,142 @@
             </div>
             <div class="sim-controls">
                  <div>
-                     <input type="checkbox" id="reinvig_spell">
-                     <label for="reinvig_spell">Reinvigoration spell each round</label>
+                     <input type="checkbox" id="relief_spell_effect">
+                     <label for="relief_spell_effect">Relief spell active</label>
                  </div>
-                 <div>
+                 <div class="button-group">
                      <button id="simulate_button">Simulate</button>
                      <button id="reset_button">Reset</button>
                  </div>
             </div>
         </fieldset>
-    </div>
+    </div> <!-- End input-column -->
 
     <div class="output-column">
         <pre id="output-text">Run simulation to see results.</pre>
         <div id="plot"></div>
-    </div>
-</div>
+    </div> <!-- End output-column -->
+
+    <div class="docs-container">
+        <details>
+            <summary>Documentation & How It Works</summary>
+            <!-- *** UPDATED DOCUMENTATION TEXT BELOW *** -->
+            <div class="docs-content">
+                 <h4>Purpose:</h4>
+                 <p>This tool simulates the fatigue accumulation and Hit Point (HP) loss for a communion setup (masters and slaves) over a specified number of turns. It helps predict how long a communion can sustain continuous spellcasting before slaves die from fatigue damage, considering various factors like caster levels, equipment, magic scales, and recovery effects.</p>
+
+                 <h4>How to Use (Inputs):</h4>
+                 <p>Spell Settings:</p>
+                 <ul>
+                     <li>Base Spell Fatigue: The fatigue cost listed on the spell card before any modifiers.</li>
+                     <li>Spell Path Requirement: The minimum magic path level required to cast the spell. Used to calculate fatigue reduction for higher-level masters.</li>
+                     <li>Caster Encumbrance: The encumbrance value of the masters' equipment. This adds directly to the master's fatigue cost component before it's distributed via the communion.</li>
+                     <li>Magic Scale (-3..+3): The magic scale in the province. Positive scales reduce fatigue cost multiplicatively (-10% per point), negative scales increase it (+10% per point).</li>
+                 </ul>
+
+                 <p>Caster/Slave Settings:</p>
+                 <ul>
+                     <li>Caster Level: The relevant magic path level of the masters casting the spell (after boosters).</li>
+                     <li>Slave Level: The relevant magic path level of the slaves in the communion (after boosters). Used with Caster Level to determine the fatigue multiplier for slaves.</li>
+                     <li>Number of Slaves: The number of slaves participating in the communion. Affects master level bonus and fatigue distribution.</li>
+                     <li>Number of Masters: The number of masters casting simultaneously each turn (assuming they are not resting due to fatigue).</li>
+                 </ul>
+
+                 <p>Fatigue/HP Settings:</p>
+                 <ul>
+                     <li>Initial Slave Fatigue: Starting fatigue value for the slaves (0-200). Useful for simulating mid-battle scenarios.</li>
+                     <li>Initial Master Fatigue: Starting fatigue value for the masters (0-200).</li>
+                     <li>Slave HP: The maximum Hit Points of the slaves.</li>
+                     <li>Extra Reinvig / Turn: Total additional points of fatigue recovered each turn by both masters and slaves, beyond their natural recovery. Enter the combined value from all sources affecting the units here.</li>
+                     <li>Healing (HP) / Turn: HP recovered by slaves each turn. Capped at the slave's maximum HP.</li>
+                 </ul>
+
+                 <p>Simulation Settings:</p>
+                 <ul>
+                     <li>Turns: The total number of game turns to simulate.</li>
+                     <li>Relief spell active: Check this if an external effect provides fatigue recovery calculated as <code>max(0, 1 + drn1 - drn2)</code> to all communion members each turn, where <code>drn1</code> and <code>drn2</code> are two independent DRN rolls. This recovery is random and can result in 0 recovery if <code>drn2</code> is significantly larger than <code>drn1</code>. This recovery happens in addition to natural recovery and the 'Extra Reinvig' value.</li>
+                 </ul>
+
+                 <h4>Mechanics Modeled:</h4>
+                 <ul>
+                     <li>Communion Master Level (CM Level): Calculated as <code>Caster Level + floor(log2(Number of Slaves))</code>. This effective level is used for fatigue reduction checks.</li>
+                     <li>Master Fatigue Cost Component:
+                         <ul>
+                             <li>Starts with <code>Base Spell Fatigue</code>.</li>
+                             <li>Divided by <code>1 + max(0, CM Level - Spell Path Requirement)</code> (higher levels reduce cost).</li>
+                             <li>Multiplied by <code>(1 - 0.1 * Magic Scale)</code>.</li>
+                             <li>Adds <code>Caster Encumbrance</code>.</li>
+                             <li>The result is divided by <code>1 + Number of Slaves</code> to get the fatigue cost per cast incurred by each master. (<code>m_cost</code>)</li>
+                         </ul>
+                     </li>
+                     <li>Slave Fatigue Multiplier: Determined by the ratio of <code>Caster Level</code> to <code>Slave Level</code>:
+                         <ul>
+                             <li><code>4.0x</code> if <code>floor(Caster Level / 2) > Slave Level</code></li>
+                             <li><code>2.0x</code> if <code>Caster Level > Slave Level</code> (but not meeting the condition above)</li>
+                             <li><code>1.0x</code> if <code>Caster Level == Slave Level</code></li>
+                             <li><code>0.5x</code> if <code>Caster Level < Slave Level</code></li>
+                             <li>Special cases if <code>Slave Level</code> is 0.</li>
+                         </ul>
+                     </li>
+                     <li>Slave Fatigue Cost Component: Calculated as <code>Master Fatigue Cost * Slave Fatigue Multiplier</code>. This is the fatigue incurred by the slave pool per master casting. (<code>s_cost</code>)</li>
+                     <li>Fatigue Accumulation:
+                         <ul>
+                             <li>Each turn, all active masters attempt to cast.</li>
+                             <li>For each master that casts, the slave pool accumulates <code>s_cost</code> fatigue (capped at 200).</li>
+                             <li>For each master that casts, that specific master accumulates <code>m_cost</code> fatigue (capped at 200).</li>
+                         </ul>
+                     </li>
+                     <li>Fatigue Damage: If a cast causes the slave pool's fatigue to reach or exceed 200, the slave pool takes HP damage equal to <code>1 + floor(s_cost / 50)</code>. This damage occurs for each cast that hits the 200 fatigue threshold in a turn. Slaves die when HP reaches 0.</li>
+                     <li>Master Casting/Resting: A master only casts if their current fatigue is less than 100. If a cast makes their fatigue reach or exceed 100, they are marked as "resting" and cannot cast on the next turn (they still recover fatigue).</li>
+                     <li>Fatigue Recovery (Natural + Extra): At the end of each turn (after casting and potential Relief effect):
+                         <ul>
+                             <li>Units (masters and slaves) with > 100 fatigue recover <code>5 + Extra Reinvig</code>.</li>
+                             <li>Units with <= 100 fatigue recover <code>1 + Extra Reinvig</code>.</li>
+                             <li>Fatigue cannot go below 0.</li>
+                         </ul>
+                     </li>
+                     <li>Relief spell active (Checkbox Effect): If checked, after casting fatigue is applied but before natural recovery, all masters and slaves recover fatigue equal to <code>max(0, 1 + drn() - drn())</code>. This involves two separate `drn()` calls per application, resulting in a random recovery amount floored at 0.</li>
+                     <li>Healing/Regeneration: Slave HP increases by the specified amount per turn, up to their maximum HP. Applied at the end of the turn.</li>
+                     <li>Slave Death: When slave HP reaches 0, the simulation stops adding slave fatigue/damage. It records the last turn the slaves were alive. Master fatigue continues to recover until the end of the simulation turns.</li>
+                 </ul>
+
+                 <h4>Output Explained:</h4>
+                  <p>Text Output:</p>
+                  <ul>
+                     <li>Communion Master Level: The calculated effective level based on master level and slave count.</li>
+                     <li>Master Cost per Cast: The final fatigue (<code>m_cost</code>) added to a master for each spell cast.</li>
+                     <li>Slave Cost per Cast: The final fatigue (<code>s_cost</code>) added to the slave pool for each spell cast by one master. The multiplier used is also shown.</li>
+                     <li>Damage per Cast: The HP damage slaves take when a cast pushes their fatigue to >= 200.</li>
+                     <li>Initial Slave/Master Fatigue: The actual starting fatigue values used (respecting the 0-200 cap).</li>
+                     <li>Total Casts: The sum of all spells successfully cast by all masters over the simulated duration (or until slaves died).</li>
+                     <li>Turns Survived: The number of turns the communion slaves remained alive (HP > 0). If they survive all turns, this equals "Turns to Simulate".</li>
+                 </ul>
+
+                 <p>Plots: Visualize the simulation turn-by-turn:</p>
+                  <ul>
+                     <li>Slave Fatigue: Shows the fatigue level of the slave pool over time. Dashed lines indicate 100 and 200 fatigue thresholds.</li>
+                     <li>Slave HP: Shows the HP of the slave pool over time. Drops indicate fatigue damage.</li>
+                     <li>Master Fatigue: Shows the fatigue level of individual masters (up to the first 5) over time. Dashed line indicates the 100 fatigue threshold for resting.</li>
+                 </ul>
+
+                 <h4>Limitations (What is NOT Modeled):</h4>
+                 <ul>
+                     <li>External sources of fatigue, damage, or healing not covered by the inputs.</li>
+                     <li>Other spells being cast by masters or external mages (except the optional recovery effect from the checkbox).</li>
+                     <li>Afflictions, diseases, unconsciousness mechanics beyond HP loss from fatigue damage.</li>
+                     <li>Specific item effects beyond encumbrance, path boosts (levels should be final), extra reinvigoration, or healing. The total effect of these should be incorporated into the input values.</li>
+                     <li>Other communion types (e.g., Blood Sabbath).</li>
+                     <li>Units leaving or joining the communion mid-simulation.</li>
+                     <li>Movement, positioning, targeting, or other battlefield conditions.</li>
+                     <li>AI behaviour or decision-making.</li>
+                     <li>The <code>drn()</code> function is a simple approximation.</li>
+                 </ul>
+            </div>
+            <!-- *** END OF UPDATED DOCUMENTATION TEXT *** -->
+        </details>
+    </div> <!-- End docs-container -->
+
+</div> <!-- End .container -->
 
 <script>
     // --- Default Values ---
@@ -181,441 +357,32 @@
         base_fatigue: 40, path_req: 2, enc: 3, mag_scale: 0,
         caster_lvl: 1, slave_lvl: 1, n_slaves: 8, n_masters: 4,
         initial_slave_fatigue: 23, initial_master_fatigue: 23, slave_hp: 10,
-        extra_reinvig: 0, regen: 0, n_turns: 100, reinvig_spell: false
+        extra_reinvig: 0, regen: 0, n_turns: 100, relief_spell_effect: false
     };
 
-    // --- Simulation Logic (Translated from Python) ---
+    // --- Simulation Logic (JavaScript code is unchanged from previous correct version) ---
+    function comm_master_level(slaves, caster_lvl) { slaves = Math.floor(slaves); if (slaves <= 0) return caster_lvl; const bonus = Math.floor(Math.log2(slaves)); return caster_lvl + Math.max(0, bonus); }
+    function cost_master(p, cm_lvl) { const path_diff = cm_lvl - p.path_req; let fatigue_reduction_divisor = 1 + Math.max(0, path_diff); if (fatigue_reduction_divisor <= 0) fatigue_reduction_divisor = 1; let num = p.base_fatigue / fatigue_reduction_divisor; num *= (1 - 0.1 * p.mag_scale); num += p.enc; const communion_divisor = 1 + Math.max(0, p.n_slaves); if (communion_divisor === 0) return num; return num / communion_divisor; }
+    function slave_mult(cl, sl) { cl = Math.floor(cl); sl = Math.floor(sl); if (sl <= 0) return cl <= 1 ? 2.0 : 4.0; const ratio_half_cl = Math.floor(cl / 2) / sl; const ratio_full_cl = cl / sl; if (ratio_half_cl > 1) return 4.0; if (ratio_full_cl > 1) return 2.0; if (cl === sl) return 1.0; return 0.5; }
+    function drn() { const roll = () => { let s = 0; while (true) { const r = Math.floor(Math.random() * 6) + 1; s += (r === 6) ? 5 : r; if (r < 6) break; } return s; }; return roll() - roll(); }
+    function simulate(p) { const cm_lvl = comm_master_level(p.n_slaves, p.caster_lvl); const m_cost = cost_master(p, cm_lvl); const s_mult = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0; const s_cost = p.n_slaves > 0 ? m_cost * s_mult : 0; const dmg_cast = p.n_slaves > 0 ? 1 + Math.floor(s_cost / 50) : 0; const initial_mf_val = Math.max(0, Math.min(p.initial_master_fatigue, 200)); let mf = Array(p.n_masters).fill(initial_mf_val); let resting = Array(p.n_masters).fill(false); let mf_hist = Array(p.n_masters).fill(null).map(() => [initial_mf_val]); let cast_count = Array(p.n_masters).fill(0); let fatigue = p.n_slaves > 0 ? Math.max(0, Math.min(p.initial_slave_fatigue, 200)) : 0; let hp = p.n_slaves > 0 ? Math.max(1, p.slave_hp) : 1; const initial_hp = p.n_slaves > 0 ? hp : 1; let fat_hist = [fatigue]; let hp_hist = [hp]; let slaves_active = (p.n_slaves > 0 && hp > 0); for (let turn = 1; turn <= p.n_turns; turn++) { let active_masters_this_turn = []; for (let i = 0; i < p.n_masters; i++) { if (resting[i]) { resting[i] = false; } else if (mf[i] < 100) { active_masters_this_turn.push(i); } } let casts_this_round = 0; if (slaves_active) { casts_this_round = active_masters_this_turn.length; for (let cast_index = 0; cast_index < casts_this_round; cast_index++) { fatigue = Math.min(fatigue + s_cost, 200); if (fatigue >= 200) { hp = Math.max(0, hp - dmg_cast); if (hp === 0) { slaves_active = false; casts_this_round = cast_index + 1; break; } } } } if (casts_this_round > 0) { for (let i = 0; i < casts_this_round; i++) { const master_index = active_masters_this_turn[i]; mf[master_index] = Math.min(mf[master_index] + m_cost, 200); cast_count[master_index]++; if (mf[master_index] >= 100) { resting[master_index] = true; } } } if (p.relief_spell_effect) { const relief_recovery = Math.max(0, 1 + drn() - drn()); if (slaves_active) { fatigue = Math.max(fatigue - relief_recovery, 0); } for (let i = 0; i < p.n_masters; i++) { mf[i] = Math.max(mf[i] - relief_recovery, 0); } } if (slaves_active) { const rec_slave = (fatigue > 100 ? 5 : 1) + p.extra_reinvig; fatigue = Math.max(fatigue - rec_slave, 0); } for (let i = 0; i < p.n_masters; i++) { const rec_m = (mf[i] > 100 ? 5 : 1) + p.extra_reinvig; mf[i] = Math.max(mf[i] - rec_m, 0); } if (slaves_active && p.regen > 0) { hp = Math.min(initial_hp, hp + p.regen); } fat_hist.push(fatigue); hp_hist.push(hp); for (let i = 0; i < p.n_masters; i++) { mf_hist[i].push(mf[i]); } if (p.n_slaves > 0 && !slaves_active && hp_hist[hp_hist.length - 2] > 0) { const died_at_turn = turn; const remaining_turns = p.n_turns - died_at_turn; if (remaining_turns > 0) { fat_hist = fat_hist.concat(Array(remaining_turns).fill(fatigue)); hp_hist = hp_hist.concat(Array(remaining_turns).fill(hp)); for (let rem_turn = 0; rem_turn < remaining_turns; rem_turn++) { for (let i = 0; i < p.n_masters; i++) { let current_mf = mf_hist[i][mf_hist[i].length - 1]; let current_resting = resting[i]; if (!(current_resting && rem_turn === 0)) { const rec_m = (current_mf > 100 ? 5 : 1) + p.extra_reinvig; current_mf = Math.max(current_mf - rec_m, 0); } if (p.relief_spell_effect) { const relief_recovery = Math.max(0, 1 + drn() - drn()); current_mf = Math.max(current_mf - relief_recovery, 0); } resting[i] = false; mf_hist[i].push(current_mf); } } } break; } } const expected_len = p.n_turns + 1; fat_hist = fat_hist.slice(0, expected_len); hp_hist = hp_hist.slice(0, expected_len); for (let i = 0; i < p.n_masters; i++) { mf_hist[i] = mf_hist[i].slice(0, expected_len); } let survived = p.n_turns; if (p.n_slaves > 0) { for (let i = 0; i < hp_hist.length; i++) { if (hp_hist[i] <= 0) { survived = Math.max(0, i - 1); break; } } } const total_casts = cast_count.reduce((sum, count) => sum + count, 0); const master_cost_calc = cost_master(p, cm_lvl); const slave_cost_calc = p.n_slaves > 0 ? master_cost_calc * slave_mult(p.caster_lvl, p.slave_lvl) : 0; const slave_mult_calc = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0; const dmg_cast_calc = p.n_slaves > 0 ? 1 + Math.floor(slave_cost_calc / 50) : 0; return { cm_lvl: cm_lvl, master_cost: master_cost_calc, slave_cost: slave_cost_calc, slave_mult: slave_mult_calc, dmg_cast: dmg_cast_calc, fat: fat_hist, hp: hp_hist, mf_hist: mf_hist, casts: cast_count, total_casts: total_casts, survived: survived, initial_slave_fatigue_actual: fat_hist[0], initial_master_fatigue_actual: (mf_hist[0] && mf_hist[0].length > 0) ? mf_hist[0][0] : 0, }; }
 
-    function comm_master_level(slaves, caster_lvl) {
-        slaves = Math.floor(slaves);
-        if (slaves <= 0) return caster_lvl;
-        const bonus = Math.floor(Math.log2(slaves));
-        return caster_lvl + Math.max(0, bonus);
-    }
-
-    function cost_master(p, cm_lvl) {
-        const path_diff = cm_lvl - p.path_req;
-        let fatigue_reduction_divisor = 1 + Math.max(0, path_diff);
-        if (fatigue_reduction_divisor <= 0) fatigue_reduction_divisor = 1;
-        let num = p.base_fatigue / fatigue_reduction_divisor;
-        num *= (1 - 0.1 * p.mag_scale);
-        num += p.enc;
-        const communion_divisor = 1 + Math.max(0, p.n_slaves);
-        if (communion_divisor === 0) return num;
-        return num / communion_divisor;
-    }
-
-    function slave_mult(cl, sl) {
-        cl = Math.floor(cl);
-        sl = Math.floor(sl);
-        if (sl <= 0) return cl <= 1 ? 2.0 : 4.0;
-        const ratio_half_cl = Math.floor(cl / 2) / sl;
-        const ratio_full_cl = cl / sl;
-        if (ratio_half_cl > 1) return 4.0;
-        if (ratio_full_cl > 1) return 2.0;
-        if (cl === sl) return 1.0;
-        return 0.5;
-    }
-
-    function drn() {
-        const roll = () => {
-            let s = 0;
-            while (true) {
-                const r = Math.floor(Math.random() * 6) + 1; // 1 to 6
-                s += (r === 6) ? 5 : r;
-                if (r < 6) break;
-            }
-            return s;
-        };
-        return roll() - roll();
-    }
-
-    function simulate(p) {
-        const cm_lvl = comm_master_level(p.n_slaves, p.caster_lvl);
-        const m_cost = cost_master(p, cm_lvl);
-        const s_mult = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0;
-        const s_cost = p.n_slaves > 0 ? m_cost * s_mult : 0;
-        const dmg_cast = p.n_slaves > 0 ? 1 + Math.floor(s_cost / 50) : 0;
-
-        const initial_mf_val = Math.max(0, Math.min(p.initial_master_fatigue, 200));
-        let mf = Array(p.n_masters).fill(initial_mf_val);
-        let resting = Array(p.n_masters).fill(false);
-        let mf_hist = Array(p.n_masters).fill(null).map(() => [initial_mf_val]); // History for each master
-        let cast_count = Array(p.n_masters).fill(0);
-
-        let fatigue = p.n_slaves > 0 ? Math.max(0, Math.min(p.initial_slave_fatigue, 200)) : 0;
-        let hp = p.n_slaves > 0 ? Math.max(1, p.slave_hp) : 1;
-        const initial_hp = p.n_slaves > 0 ? hp : 1;
-
-        let fat_hist = [fatigue];
-        let hp_hist = [hp];
-
-        let slaves_active = (p.n_slaves > 0 && hp > 0);
-
-        for (let turn = 1; turn <= p.n_turns; turn++) {
-            let active_masters_this_turn = [];
-            for (let i = 0; i < p.n_masters; i++) {
-                if (resting[i]) {
-                    resting[i] = false;
-                } else if (mf[i] < 100) {
-                    active_masters_this_turn.push(i);
-                }
-            }
-
-            let casts_this_round = 0;
-
-            if (slaves_active) {
-                casts_this_round = active_masters_this_turn.length;
-                for (let cast_index = 0; cast_index < casts_this_round; cast_index++) {
-                    fatigue = Math.min(fatigue + s_cost, 200);
-                    if (fatigue >= 200) {
-                        hp = Math.max(0, hp - dmg_cast);
-                        if (hp === 0) {
-                            slaves_active = false;
-                            casts_this_round = cast_index + 1; // Count the cast that killed the slaves
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Apply fatigue to masters who actually cast (up to casts_this_round limit)
-            if (casts_this_round > 0) {
-                 for (let i = 0; i < casts_this_round; i++) {
-                     const master_index = active_masters_this_turn[i];
-                     mf[master_index] = Math.min(mf[master_index] + m_cost, 200);
-                     cast_count[master_index]++;
-                     if (mf[master_index] >= 100) {
-                         resting[master_index] = true;
-                     }
-                 }
-            }
-
-            // Reinvigoration Spell
-            if (p.reinvig_spell) {
-                if (slaves_active) {
-                    fatigue = Math.max(fatigue - Math.max(1 + drn(), 0), 0);
-                }
-                for (let i = 0; i < p.n_masters; i++) {
-                    mf[i] = Math.max(mf[i] - Math.max(1 + drn(), 0), 0);
-                }
-            }
-
-            // Natural Recovery + Extra Reinvig
-            if (slaves_active) {
-                const rec_slave = (fatigue > 100 ? 5 : 1) + p.extra_reinvig;
-                fatigue = Math.max(fatigue - rec_slave, 0);
-            }
-            for (let i = 0; i < p.n_masters; i++) {
-                const rec_m = (mf[i] > 100 ? 5 : 1) + p.extra_reinvig;
-                mf[i] = Math.max(mf[i] - rec_m, 0);
-            }
-
-            // Healing / Regeneration
-            if (slaves_active && p.regen > 0) {
-                hp = Math.min(initial_hp, hp + p.regen);
-            }
-
-            // Record history
-            fat_hist.push(fatigue);
-            hp_hist.push(hp);
-            for (let i = 0; i < p.n_masters; i++) {
-                mf_hist[i].push(mf[i]);
-            }
-
-            // If slaves died, stop simulation for slaves and continue master recovery
-            if (p.n_slaves > 0 && !slaves_active && hp_hist[hp_hist.length - 2] > 0) { // Check if just died
-                 const died_at_turn = turn;
-                 const remaining_turns = p.n_turns - died_at_turn;
-                 if (remaining_turns > 0) {
-                      // Pad slave histories
-                     fat_hist = fat_hist.concat(Array(remaining_turns).fill(fatigue));
-                     hp_hist = hp_hist.concat(Array(remaining_turns).fill(hp));
-
-                     // Continue simulating master recovery
-                     for (let rem_turn = 0; rem_turn < remaining_turns; rem_turn++) {
-                         for (let i = 0; i < p.n_masters; i++) {
-                             let current_mf = mf_hist[i][mf_hist[i].length - 1];
-                             let current_resting = resting[i]; // Resting state at time of death
-
-                             if (current_resting && rem_turn === 0) { // Only skip first recovery turn if resting when slaves died
-                                 // Skip recovery for this turn if resting
-                             } else {
-                                 const rec_m = (current_mf > 100 ? 5 : 1) + p.extra_reinvig;
-                                 current_mf = Math.max(current_mf - rec_m, 0);
-                             }
-                              // Update resting state for the *next* recovery turn simulation if needed
-                              // (This simplified version doesn't strictly need the resting state after slaves die,
-                              // recovery happens regardless, but keeping the variable)
-                             resting[i] = false; // Assume they recover enough not to be forced resting
-
-                             mf_hist[i].push(current_mf);
-                         }
-                     }
-                 }
-                 break; // Exit main simulation loop
-            }
-        } // End turn loop
-
-        // Ensure arrays have the expected length if simulation stopped early
-        const expected_len = p.n_turns + 1;
-        fat_hist = fat_hist.slice(0, expected_len);
-        hp_hist = hp_hist.slice(0, expected_len);
-        for (let i = 0; i < p.n_masters; i++) {
-            mf_hist[i] = mf_hist[i].slice(0, expected_len);
-        }
-
-
-        let survived = p.n_turns;
-        if (p.n_slaves > 0) {
-            for (let i = 0; i < hp_hist.length; i++) {
-                if (hp_hist[i] <= 0) {
-                    survived = Math.max(0, i - 1); // Died *during* turn i, survived i-1 turns
-                    break;
-                }
-            }
-        }
-
-        const total_casts = cast_count.reduce((sum, count) => sum + count, 0);
-        const master_cost_calc = cost_master(p, cm_lvl); // Recalculate for display consistency
-        const slave_cost_calc = p.n_slaves > 0 ? master_cost_calc * slave_mult(p.caster_lvl, p.slave_lvl) : 0;
-        const slave_mult_calc = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0;
-        const dmg_cast_calc = p.n_slaves > 0 ? 1 + Math.floor(slave_cost_calc / 50) : 0;
-
-        return {
-            cm_lvl: cm_lvl,
-            master_cost: master_cost_calc,
-            slave_cost: slave_cost_calc,
-            slave_mult: slave_mult_calc,
-            dmg_cast: dmg_cast_calc,
-            fat: fat_hist,
-            hp: hp_hist,
-            mf_hist: mf_hist, // Array of arrays
-            casts: cast_count, // Array
-            total_casts: total_casts,
-            survived: survived,
-            initial_slave_fatigue_actual: fat_hist[0],
-            initial_master_fatigue_actual: (mf_hist[0] && mf_hist[0].length > 0) ? mf_hist[0][0] : 0,
-        };
-    }
-
-    // --- GUI Interaction ---
-
+    // --- GUI Interaction (Unchanged) ---
     const outputTextElement = document.getElementById('output-text');
     const plotElement = document.getElementById('plot');
-    const inputIds = Object.keys(defaultValues); // Get IDs from defaults
-
-    function getInputValues() {
-        const params = {};
-        let isValid = true;
-        inputIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (!element) {
-                console.error(`Element with ID ${id} not found!`);
-                isValid = false;
-                return;
-            }
-            element.classList.remove('error-input'); // Clear previous errors
-
-            if (element.type === 'checkbox') {
-                params[id] = element.checked;
-            } else if (element.type === 'number') {
-                const value = parseFloat(element.value);
-                if (isNaN(value)) {
-                    alert(`Invalid input for ${element.previousElementSibling?.textContent || id}. Please enter a number.`);
-                    element.classList.add('error-input');
-                    isValid = false;
-                }
-                // Add specific range checks from Python code
-                if (id === 'n_turns' && (value <= 0 || value > 10000)) { alert("Turns must be 1-10000."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'n_slaves' && value < 0) { alert("Slaves cannot be negative."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'n_masters' && value < 1) { alert("Masters must be >= 1."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'slave_hp' && params['n_slaves'] > 0 && value <= 0) { alert("Slave HP must be positive."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'path_req' && value < 0) { alert("Path Req cannot be negative."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'caster_lvl' && value < 0) { alert("Caster Level cannot be negative."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'slave_lvl' && value < 0) { alert("Slave Level cannot be negative."); element.classList.add('error-input'); isValid = false; }
-                if (id === 'mag_scale' && (value < -3 || value > 3)) { alert("Magic Scale must be -3 to +3."); element.classList.add('error-input'); isValid = false; }
-
-                params[id] = value; // Store as number
-            } else {
-                 params[id] = element.value; // Store as string if not number/checkbox
-            }
-        });
-
-        // Re-check slave_hp dependency if n_slaves was processed later
-        if (isValid && params['n_slaves'] > 0 && params['slave_hp'] <= 0) {
-             alert("Slave HP must be positive when slaves > 0.");
-             document.getElementById('slave_hp').classList.add('error-input');
-             isValid = false;
-        }
-
-        return isValid ? params : null;
-    }
-
-    function resetForm() {
-        inputIds.forEach(id => {
-            const element = document.getElementById(id);
-            element.classList.remove('error-input');
-            if (element.type === 'checkbox') {
-                element.checked = defaultValues[id];
-            } else {
-                element.value = defaultValues[id];
-            }
-        });
-        outputTextElement.textContent = "Run simulation to see results.";
-        Plotly.purge(plotElement); // Clear the plot
-    }
-
-    function runSimulation() {
-        const params = getInputValues();
-        if (!params) return; // Validation failed
-
-        try {
-            const results = simulate(params);
-            updateOutputText(results, params);
-            updatePlot(results, params);
-        } catch (error) {
-            console.error("Simulation Error:", error);
-            outputTextElement.textContent = `Simulation Error:\n${error}\n\nCheck console for more details.`;
-            Plotly.purge(plotElement);
-        }
-    }
-
-    function updateOutputText(r, p) {
-         const slave_mult_str = (p.n_slaves > 0 && r.master_cost > 0) ? `(x${r.slave_mult.toFixed(1)} multiple)` : "";
-         const label_width = 25;
-
-         // Format values with fixed precision and then get length for padding
-        const values = [
-            r.cm_lvl.toFixed(0),
-            r.master_cost.toFixed(2),
-            `${r.slave_cost.toFixed(2)} ${slave_mult_str}`,
-            r.dmg_cast.toFixed(0),
-            r.initial_slave_fatigue_actual.toFixed(2),
-            r.initial_master_fatigue_actual.toFixed(2),
-            r.total_casts.toFixed(0),
-            r.survived.toFixed(0),
-        ];
-         const value_width = Math.max(...values.map(val => val.length)); // Dynamic width
-
-         const output_lines = [
-             `Communion Master Level:`.padEnd(label_width) + r.cm_lvl.toFixed(0).padStart(value_width),
-             `Master Cost per Cast:`.padEnd(label_width) + r.master_cost.toFixed(2).padStart(value_width),
-             `Slave Cost per Cast:`.padEnd(label_width) + `${r.slave_cost.toFixed(2)} ${slave_mult_str}`.padStart(value_width),
-             `Damage per Cast:`.padEnd(label_width) + r.dmg_cast.toFixed(0).padStart(value_width),
-             `Initial Slave Fatigue:`.padEnd(label_width) + r.initial_slave_fatigue_actual.toFixed(2).padStart(value_width),
-             `Initial Master Fatigue:`.padEnd(label_width) + r.initial_master_fatigue_actual.toFixed(2).padStart(value_width),
-             `Total Casts:`.padEnd(label_width) + r.total_casts.toFixed(0).padStart(value_width),
-             `Turns Survived:`.padEnd(label_width) + r.survived.toFixed(0).padStart(value_width),
-         ];
-        outputTextElement.textContent = output_lines.join("\n");
-    }
-
-    function updatePlot(r, p) {
-        const t = Array.from({ length: r.fat.length }, (_, i) => i); // Turns 0 to n_turns
-        const traces = [];
-        const annotations = []; // For "No Slaves" text
-
-        // --- Slave Fatigue Trace ---
-        if (p.n_slaves > 0) {
-            traces.push({
-                x: t, y: r.fat, type: 'scatter', mode: 'lines+markers',
-                name: 'Slave Fatigue', yaxis: 'y1',
-                line: { color: 'rgb(31, 119, 180)' }, // tab:blue
-                marker: { size: 4 }
-            });
-        } else {
-             annotations.push({
-                 text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.83, // Approx position for top plot
-                 showarrow: false, font: { size: 14, color: 'grey' }
-             });
-        }
-
-        // --- Slave HP Trace ---
-         if (p.n_slaves > 0) {
-             traces.push({
-                 x: t, y: r.hp, type: 'scatter', mode: 'lines+markers',
-                 name: 'Slave HP', yaxis: 'y2',
-                 line: { color: 'rgb(44, 160, 44)' }, // tab:green
-                 marker: { size: 4 }
-             });
-         } else {
-              annotations.push({
-                  text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.5, // Approx position for middle plot
-                  showarrow: false, font: { size: 14, color: 'grey' }
-              });
-         }
-
-        // --- Master Fatigue Traces ---
-        const num_masters_to_plot = Math.min(p.n_masters, 5);
-        const colors = Plotly.d3.scale.category10(); // Get Plotly's default color scale
-
-        for (let idx = 0; idx < num_masters_to_plot; idx++) {
-            if (idx < r.mf_hist.length) {
-                const series = r.mf_hist[idx];
-                 const time_axis = t.slice(0, series.length);
-                 traces.push({
-                     x: time_axis, y: series, type: 'scatter', mode: 'lines',
-                     name: `Master ${idx + 1} Fat`, yaxis: 'y3',
-                     line: { color: colors(idx) } // Use Plotly colors
-                 });
-            }
-        }
-         if (p.n_masters === 0) {
-             annotations.push({
-                 text: 'No Masters', xref: 'paper', yref: 'paper', x: 0.5, y: 0.17, // Approx position for bottom plot
-                 showarrow: false, font: { size: 14, color: 'grey' }
-             });
-         }
-
-
-        // --- Layout ---
-        const max_hp = p.n_slaves > 0 ? p.slave_hp : 1;
-        const min_hp_observed = p.n_slaves > 0 && r.hp.length > 0 ? Math.min(...r.hp) : 0;
-        const hp_y_min = Math.max(-0.5, min_hp_observed - 1);
-        const hp_y_max = max_hp + Math.max(1, 0.1 * max_hp);
-
-        const layout = {
-            //grid: {rows: 3, columns: 1, pattern: 'independent'}, // Causes issues with shared x
-            xaxis: { title: 'Turn', domain: [0, 1] }, // Shared X axis
-            yaxis1: { // Slave Fatigue
-                title: 'Slave Fatigue', domain: [0.66, 1], // Top third
-                range: [-5, 215], anchor: 'x'
-            },
-            yaxis2: { // Slave HP
-                title: 'Slave HP', domain: [0.33, 0.66], // Middle third
-                range: [hp_y_min, hp_y_max], anchor: 'x'
-            },
-            yaxis3: { // Master Fatigue
-                 title: 'Master Fatigue', domain: [0, 0.33], // Bottom third
-                 range: [-5, 150], anchor: 'x'
-             },
-            title: 'Simulation Results',
-            showlegend: true,
-            legend: { x: 1.05, y: 1 }, // Place legend outside
-            margin: { l: 50, r: 50, t: 50, b: 50 }, // Adjust margins
-            hovermode: 'closest',
-            shapes: [ // Horizontal lines
-                 // Slave Fatigue lines (referencing yaxis y1)
-                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
-                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 200, y1: 200, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
-                 // Master Fatigue line (referencing yaxis y3)
-                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y3', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
-            ],
-            annotations: annotations // Add text annotations if needed
-        };
-
-        Plotly.newPlot(plotElement, traces, layout, {responsive: true});
-    }
+    const inputIds = Object.keys(defaultValues);
+    function getInputValues() { const params = {}; let isValid = true; inputIds.forEach(id => { const element = document.getElementById(id); if (!element) { console.error(`Element with ID ${id} not found!`); isValid = false; return; } element.classList.remove('error-input'); if (element.type === 'checkbox') { params[id] = element.checked; } else if (element.type === 'number') { const value = parseFloat(element.value); if (isNaN(value)) { alert(`Invalid input for ${element.labels[0]?.textContent || id}. Please enter a number.`); element.classList.add('error-input'); isValid = false; } if (id === 'n_turns' && (!Number.isInteger(value) || value <= 0 || value > 10000)) { alert("Turns must be an integer 1-10000."); element.classList.add('error-input'); isValid = false; } if (id === 'n_slaves' && (!Number.isInteger(value) || value < 0)) { alert("Number of Slaves must be a non-negative integer."); element.classList.add('error-input'); isValid = false; } if (id === 'n_masters' && (!Number.isInteger(value) || value < 1)) { alert("Number of Masters must be an integer >= 1."); element.classList.add('error-input'); isValid = false; } const nSlavesCheck = parseFloat(document.getElementById('n_slaves').value); if (id === 'slave_hp' && nSlavesCheck > 0 && (!Number.isInteger(value) || value <= 0)) { alert("Slave HP must be a positive integer when slaves > 0."); element.classList.add('error-input'); isValid = false; } if (id === 'path_req' && (!Number.isInteger(value) || value < 0)) { alert("Path Req must be a non-negative integer."); element.classList.add('error-input'); isValid = false; } if (id === 'caster_lvl' && (!Number.isInteger(value) || value < 0)) { alert("Caster Level must be a non-negative integer."); element.classList.add('error-input'); isValid = false; } if (id === 'slave_lvl' && (!Number.isInteger(value) || value < 0)) { alert("Slave Level must be a non-negative integer."); element.classList.add('error-input'); isValid = false; } if (id === 'mag_scale' && (!Number.isInteger(value) || value < -3 || value > 3)) { alert("Magic Scale must be an integer -3 to +3."); element.classList.add('error-input'); isValid = false; } params[id] = value; } else { params[id] = element.value; } }); if (isValid && params['n_slaves'] > 0 && params['slave_hp'] <= 0) { alert("Slave HP must be positive when slaves > 0."); document.getElementById('slave_hp').classList.add('error-input'); isValid = false; } return isValid ? params : null; }
+    function resetForm() { inputIds.forEach(id => { const element = document.getElementById(id); element.classList.remove('error-input'); if (defaultValues.hasOwnProperty(id)) { if (element.type === 'checkbox') { element.checked = defaultValues[id]; } else { element.value = defaultValues[id]; } } else { console.warn("No default value found for ID:", id); } }); outputTextElement.textContent = "Run simulation to see results."; Plotly.purge(plotElement); }
+    function runSimulation() { const params = getInputValues(); if (!params) return; try { const results = simulate(params); updateOutputText(results, params); updatePlot(results, params); } catch (error) { console.error("Simulation Error:", error); outputTextElement.textContent = `Simulation Error:\n${error}\n\nCheck console for more details.`; Plotly.purge(plotElement); } }
+    function updateOutputText(r, p) { const slave_mult_str = (p.n_slaves > 0 && r.master_cost > 0) ? `(x${r.slave_mult.toFixed(1)} multiple)` : ""; const label_width = 25; const values = [ r.cm_lvl.toFixed(0), r.master_cost.toFixed(2), `${r.slave_cost.toFixed(2)} ${slave_mult_str}`, r.dmg_cast.toFixed(0), r.initial_slave_fatigue_actual.toFixed(2), r.initial_master_fatigue_actual.toFixed(2), r.total_casts.toFixed(0), r.survived.toFixed(0), ]; const value_width = Math.max(...values.map(val => val.length)); const output_lines = [ `Communion Master Level:`.padEnd(label_width) + r.cm_lvl.toFixed(0).padStart(value_width), `Master Cost per Cast:`.padEnd(label_width) + r.master_cost.toFixed(2).padStart(value_width), `Slave Cost per Cast:`.padEnd(label_width) + `${r.slave_cost.toFixed(2)} ${slave_mult_str}`.padStart(value_width), `Damage per Cast:`.padEnd(label_width) + r.dmg_cast.toFixed(0).padStart(value_width), `Initial Slave Fatigue:`.padEnd(label_width) + r.initial_slave_fatigue_actual.toFixed(2).padStart(value_width), `Initial Master Fatigue:`.padEnd(label_width) + r.initial_master_fatigue_actual.toFixed(2).padStart(value_width), `Total Casts:`.padEnd(label_width) + r.total_casts.toFixed(0).padStart(value_width), `Turns Survived:`.padEnd(label_width) + r.survived.toFixed(0).padStart(value_width), ]; outputTextElement.textContent = output_lines.join("\n"); }
+    function updatePlot(r, p) { const t = Array.from({ length: r.fat.length }, (_, i) => i); const traces = []; const annotations = []; if (p.n_slaves > 0) { traces.push({ x: t, y: r.fat, type: 'scatter', mode: 'lines+markers', name: 'Slave Fatigue', yaxis: 'y1', line: { color: 'rgb(31, 119, 180)' }, marker: { size: 4 } }); traces.push({ x: t, y: r.hp, type: 'scatter', mode: 'lines+markers', name: 'Slave HP', yaxis: 'y2', line: { color: 'rgb(44, 160, 44)' }, marker: { size: 4 } }); } else { annotations.push({ text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.83, showarrow: false, font: { size: 14, color: 'grey' } }); annotations.push({ text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.5, showarrow: false, font: { size: 14, color: 'grey' } }); } const num_masters_to_plot = Math.min(p.n_masters, 5); const colors = Plotly.d3.scale.category10(); for (let idx = 0; idx < num_masters_to_plot; idx++) { if (idx < r.mf_hist.length) { const series = r.mf_hist[idx]; const time_axis = t.slice(0, series.length); traces.push({ x: time_axis, y: series, type: 'scatter', mode: 'lines', name: `Master ${idx + 1} Fat`, yaxis: 'y3', line: { color: colors(idx) } }); } } if (p.n_masters <= 0 && annotations.length < 3) { annotations.push({ text: 'No Masters', xref: 'paper', yref: 'paper', x: 0.5, y: 0.17, showarrow: false, font: { size: 14, color: 'grey' } }); } const max_hp = p.n_slaves > 0 ? p.slave_hp : 1; const min_hp_observed = p.n_slaves > 0 && r.hp.length > 0 ? Math.min(...r.hp) : 0; const hp_y_min = Math.max(-0.5, min_hp_observed - 1); const hp_y_max = max_hp + Math.max(1, 0.1 * max_hp); const layout = { xaxis: { title: 'Turn', domain: [0, 1] }, yaxis1: { title: 'Slave Fatigue', domain: [0.66, 1], range: [-5, 215], anchor: 'x' }, yaxis2: { title: 'Slave HP', domain: [0.33, 0.66], range: [hp_y_min, hp_y_max], anchor: 'x' }, yaxis3: { title: 'Master Fatigue', domain: [0, 0.33], range: [-5, 150], anchor: 'x' }, title: 'Simulation Results', showlegend: true, legend: { x: 1.05, y: 1 }, margin: { l: 60, r: 50, t: 50, b: 50 }, hovermode: 'closest', shapes: [ { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } }, { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 200, y1: 200, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } }, { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y3', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } }, ], annotations: annotations }; Plotly.newPlot(plotElement, traces, layout, {responsive: true}); }
 
     // --- Event Listeners ---
     document.getElementById('simulate_button').addEventListener('click', runSimulation);
     document.getElementById('reset_button').addEventListener('click', resetForm);
 
     // --- Initial State ---
-    resetForm(); // Set default values on load
-    // Optionally run simulation once on load?
-    // runSimulation();
+    resetForm();
 
 </script>
 
