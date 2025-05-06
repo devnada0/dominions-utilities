@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominions Patrol & Unrest Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px 20px;
+        }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-field label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-field input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Ensures padding doesn't expand width */
+        }
+        button#calculateBtn {
+            background-color: #5cb85c;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        button#calculateBtn:hover {
+            background-color: #4cae4c;
+        }
+        #resultsArea {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9e9e9;
+            border-radius: 4px;
+        }
+        #resultsArea p {
+            margin: 8px 0;
+            font-size: 1.05em;
+        }
+        .collapsible {
+            background-color: #f9f9f9;
+            color: #333;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: 1px solid #eee;
+            text-align: left;
+            outline: none;
+            font-size: 1.1em;
+            margin-top: 30px;
+            border-radius: 4px;
+        }
+        .collapsible:hover {
+            background-color: #e9e9e9;
+        }
+        .collapsible.active {
+             border-bottom-left-radius: 0;
+             border-bottom-right-radius: 0;
+        }
+        .documentation-content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-top: none;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        .documentation-content h2, .documentation-content h3 {
+            margin-top: 15px;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dominions Patrol & Unrest Calculator</h1>
+
+        <div class="input-group">
+            <div class="input-field">
+                <label for="leaderStealth">Leader's Stealth Ability:</label>
+                <input type="number" id="leaderStealth" value="50">
+            </div>
+            <div class="input-field">
+                <label for="unitsLt50">Stealth Units (Stealth < 50):</label>
+                <input type="number" id="unitsLt50" value="0" min="0">
+            </div>
+            <div class="input-field">
+                <label for="unitsGe50">Stealth Units (Stealth >= 50):</label>
+                <input type="number" id="unitsGe50" value="0" min="0">
+            </div>
+            <div class="input-field">
+                <label for="patrolStrength">Patrol Strength:</label>
+                <input type="number" id="patrolStrength" value="25" min="0">
+            </div>
+            <div class="input-field">
+                <label for="unrest">Current Unrest:</label>
+                <input type="number" id="unrest" value="0" min="0">
+            </div>
+            <div class="input-field">
+                <label for="provinceDefense">Province Defense (PD):</label>
+                <input type="number" id="provinceDefense" value="6" min="0">
+            </div>
+            <div class="input-field">
+                <label for="simulations">Number of Simulations:</label>
+                <input type="number" id="simulations" value="100000" min="1000">
+            </div>
+        </div>
+        
+        <button id="calculateBtn">Calculate</button>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="resultsArea" style="display:none;">
+            <h3>Results:</h3>
+            <p id="detectionChance"></p>
+            <p id="unrestReductionChance"></p>
+            <p id="avgUnrestReduced"></p>
+        </div>
+
+        <button type="button" class="collapsible">Tool Explanation & Dominions Mechanics ▼</button>
+        <div class="documentation-content">
+            <h2>Dominions Patrol and Unrest Reduction Calculator</h2>
+            <p>This tool simulates the patrol process in Dominions to estimate the probability of detecting stealthy units and the effectiveness of unrest reduction.</p>
+            
+            <h3>Purpose:</h3>
+            <ul>
+                <li>Calculates the chance of detecting stealth units based on their effective stealth strength and the patrollers' effective destealth strength.</li>
+                <li>Estimates the average amount of unrest reduced by patrolling, conditional on a successful unrest reduction attempt.</li>
+                <li>Determines the probability that a patrol attempt will even have a chance to reduce unrest.</li>
+            </ul>
+
+            <h3>Inputs:</h3>
+            <ul>
+                <li><strong>Leader's Stealth Ability:</strong> The base stealth value of the leading stealthy commander.</li>
+                <li><strong>Stealth Units (Stealth < 50):</strong> Number of stealthy units under the leader's command with individual stealth ability less than 50. These reduce the group's effective stealth by 1 each.</li>
+                <li><strong>Stealth Units (Stealth >= 50):</strong> Number of stealthy units under the leader's command with individual stealth ability 50 or greater. These reduce the group's effective stealth by 0.5 each.</li>
+                <li><strong>Patrol Strength:</strong> The total patrol strength of the units patrolling the province.</li>
+                <li><strong>Current Unrest:</strong> The current unrest level in the province. This affects destealth strength.</li>
+                <li><strong>Province Defense (PD):</strong> The current PD level in the province. This can affect destealth strength.</li>
+                <li><strong>Number of Simulations:</strong> How many times to run each simulation. Higher numbers give more accurate results but take longer.</li>
+            </ul>
+
+            <h3>Outputs:</h3>
+            <ul>
+                <li><strong>Chance of finding the unit:</strong> The estimated probability (P) that the patrolling force will detect the stealthy group, presented as P% (±SE%), where SE is the standard error of the estimate.</li>
+                <li><strong>Chance of attempting unrest reduction:</strong> The estimated probability (P) that a patrol roll is low enough to allow for an unrest reduction attempt, presented as P% (±SE%).</li>
+                <li><strong>Average unrest reduced:</strong> If an unrest reduction attempt is made, this is the average amount of unrest that will be reduced (presented with ±1 sample standard deviation, describing the variability of individual reduction amounts).</li>
+            </ul>
+
+            <h3>Core Mechanics Simulated:</h3>
+            <h4>Stealth Detection:</h4>
+            <ol>
+                <li><strong>Effective Stealth Strength</strong> = Leader's Stealth - (Units with Stealth < 50) - 0.5 * (Units with Stealth >= 50).</li>
+                <li><strong>Effective Destealth Strength</strong> = Patrol Strength - min(Unrest, 100)/2 + max(0, Province Defense - 14).</li>
+                <li>Both stealthy group and patrollers roll 2x Exploding d25 dice (an exploding die is re-rolled and added if it rolls its maximum value).
+                    <ul><li>Stealth Total = Effective Stealth Strength + Stealth Roll</li>
+                        <li>Destealth Total = Effective Destealth Strength + Destealth Roll</li>
+                    </ul>
+                </li>
+                <li>Detection occurs if Destealth Total > Stealth Total.</li>
+            </ol>
+            <h4>Unrest Reduction:</h4>
+            <ol>
+                <li>An Exploding d50 die is rolled (Unrest Roll).</li>
+                <li>If Unrest Roll > Patrol Strength + 25, no unrest reduction attempt is made for this patrol action.</li>
+                <li>Otherwise, an unrest reduction attempt occurs. The amount of unrest reduced is a random integer from 0 to Patrol Strength (inclusive).</li>
+            </ol>
+            <p><em>This tool is based on generally understood Dominions mechanics. Mechanics can change between game versions. Original Python script by Devnada.</em></p>
+        </div>
+    </div>
+
+    <script>
+        // --- Collapsible script ---
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const coll = document.querySelector(".collapsible");
+            if (coll) {
+                coll.addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    const content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                        this.textContent = "Tool Explanation & Dominions Mechanics ▼";
+                    } else {
+                        content.style.display = "block";
+                        this.textContent = "Tool Explanation & Dominions Mechanics ▲";
+                    }
+                });
+            }
+
+            const calculateBtn = document.getElementById('calculateBtn');
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', runSimulations);
+            }
+        });
+
+        function getFloatValue(id, defaultValue) {
+            const val = parseFloat(document.getElementById(id).value);
+            return isNaN(val) ? defaultValue : val;
+        }
+        function getIntValue(id, defaultValue) {
+            const val = parseInt(document.getElementById(id).value, 10);
+            return isNaN(val) ? defaultValue : val;
+        }
+
+        function calculateStealthStrength(leaderStealth, unitsLt50, unitsGe50) {
+            return leaderStealth - unitsLt50 - 0.5 * unitsGe50;
+        }
+
+        function calculateDestealthStrength(patrolStrength, unrest, provinceDefense) {
+            return patrolStrength - Math.min(unrest, 100) / 2 + Math.max(0, provinceDefense - 14);
+        }
+
+        function explodingDiceRoll(sides) {
+            let total = 0;
+            while (true) {
+                const roll = Math.floor(Math.random() * sides) + 1;
+                total += roll;
+                if (roll < sides) {
+                    break;
+                }
+            }
+            return total;
+        }
+
+        function simulateDetectionProbability(stealthStrength, destealthStrength, simulations) {
+            let successes = 0;
+            for (let i = 0; i < simulations; i++) {
+                const stealthRoll = explodingDiceRoll(25) + explodingDiceRoll(25);
+                const destealthRoll = explodingDiceRoll(25) + explodingDiceRoll(25);
+                const stealthTotal = stealthStrength + stealthRoll;
+                const destealthTotal = destealthStrength + destealthRoll;
+                if (destealthTotal > stealthTotal) {
+                    successes++;
+                }
+            }
+            return successes / simulations; // This is p_hat
+        }
+
+        function simulateUnrestReduction(patrolStrength, simulations) {
+            const successfulReductionAmounts = []; 
+            let reductionAttempts = 0; 
+
+            for (let i = 0; i < simulations; i++) {
+                const unrestRoll = explodingDiceRoll(50);
+                if (unrestRoll <= patrolStrength + 25) {
+                    reductionAttempts++;
+                    const unrestReduced = Math.floor(Math.random() * (Math.floor(patrolStrength) + 1));
+                    successfulReductionAmounts.push(unrestReduced);
+                }
+            }
+            
+            const probabilityOfAttempt = reductionAttempts / simulations; // This is p_hat for unrest attempt
+
+            if (successfulReductionAmounts.length > 0) {
+                const sum = successfulReductionAmounts.reduce((a, b) => a + b, 0);
+                const averageUnrestReduced = sum / successfulReductionAmounts.length;
+                
+                const variance = successfulReductionAmounts.map(x => Math.pow(x - averageUnrestReduced, 2)).reduce((a, b) => a + b, 0) / successfulReductionAmounts.length;
+                const stdUnrestReduced = Math.sqrt(variance);
+
+                return {
+                    probabilityOfAttempt,
+                    averageUnrestReduced,
+                    stdUnrestReduced
+                };
+            } else {
+                return {
+                    probabilityOfAttempt, 
+                    averageUnrestReduced: 0,
+                    stdUnrestReduced: 0
+                };
+            }
+        }
+
+        function runSimulations() {
+            document.getElementById('errorMessage').textContent = '';
+            try {
+                const leaderStealth = getFloatValue('leaderStealth', 50);
+                const unitsLt50 = getIntValue('unitsLt50', 0);
+                const unitsGe50 = getIntValue('unitsGe50', 0);
+                const patrolStrength = getFloatValue('patrolStrength', 25);
+                const unrest = getFloatValue('unrest', 0);
+                const provinceDefense = getIntValue('provinceDefense', 6);
+                const simulations = getIntValue('simulations', 100000);
+
+                if (simulations < 1) {
+                    document.getElementById('errorMessage').textContent = "Number of simulations must be at least 1.";
+                    document.getElementById('resultsArea').style.display = 'none';
+                    return;
+                }
+                 if (unitsLt50 < 0 || unitsGe50 < 0 || patrolStrength < 0 || unrest < 0 || provinceDefense < 0) {
+                    document.getElementById('errorMessage').textContent = "Inputs like units, patrol strength, unrest, and PD cannot be negative.";
+                    document.getElementById('resultsArea').style.display = 'none';
+                    return;
+                }
+
+                // Calculations
+                const stealthStrength = calculateStealthStrength(leaderStealth, unitsLt50, unitsGe50);
+                const destealthStrength = calculateDestealthStrength(patrolStrength, unrest, provinceDefense);
+                
+                const detectionProbability = simulateDetectionProbability(stealthStrength, destealthStrength, simulations);
+                // Standard Error for detectionProbability: sqrt(p*(1-p)/n)
+                const seDetection = Math.sqrt(detectionProbability * (1 - detectionProbability) / simulations);
+
+                const unrestSimResults = simulateUnrestReduction(patrolStrength, simulations);
+                // Standard Error for probabilityOfAttempt: sqrt(p*(1-p)/n)
+                const seUnrestAttempt = Math.sqrt(unrestSimResults.probabilityOfAttempt * (1 - unrestSimResults.probabilityOfAttempt) / simulations);
+
+
+                // Display Results
+                document.getElementById('resultsArea').style.display = 'block';
+                document.getElementById('detectionChance').textContent = 
+                    `Chance of finding the unit: ${(detectionProbability * 100).toFixed(2)}% (±${(seDetection * 100).toFixed(2)}%)`;
+                
+                document.getElementById('unrestReductionChance').textContent = 
+                    `Chance of attempting unrest reduction: ${(unrestSimResults.probabilityOfAttempt * 100).toFixed(2)}% (±${(seUnrestAttempt * 100).toFixed(2)}%)`;
+
+                document.getElementById('avgUnrestReduced').textContent = 
+                    `Average unrest reduced: ${unrestSimResults.averageUnrestReduced.toFixed(2)} (±${unrestSimResults.stdUnrestReduced.toFixed(2)})`;
+
+            } catch (error) {
+                console.error("Error during simulation:", error);
+                document.getElementById('errorMessage').textContent = `An error occurred: ${error.message}`;
+                document.getElementById('resultsArea').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
