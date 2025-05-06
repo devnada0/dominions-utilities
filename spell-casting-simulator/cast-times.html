@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominions 6 Spell Casting Simulator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.4;
+            padding: 15px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .players-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .player-setup {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .player-setup legend {
+            font-weight: bold;
+            padding: 0 5px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label,
+        .form-group span { /* For round numbers */
+            display: inline-block; /* Or block if needed */
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .form-group input[type="checkbox"] {
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+         .form-group input[type="text"],
+         .form-group input[type="number"],
+         .form-group select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box; /* Include padding in width */
+         }
+        .round-inputs-container {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        .round-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .round-row label {
+            width: 60px; /* Fixed width for round label */
+            text-align: right;
+            padding-right: 5px;
+            font-weight: bold;
+        }
+         .round-row .round-label-header {
+             width: 60px;
+             font-weight: bold;
+             text-align: left;
+             padding-left: 5px;
+         }
+         .round-row .round-input-header {
+             flex: 1;
+             font-weight: bold;
+         }
+
+        .round-row input[type="text"] {
+            flex: 1; /* Take remaining space */
+            max-width: 200px; /* Adjust as needed */
+        }
+        .controls-container {
+            display: flex;
+            gap: 30px; /* Increased gap */
+            align-items: flex-start; /* Align items to the top */
+            margin-bottom: 20px;
+        }
+        .simulation-params, .action-buttons {
+             margin-top: 0; /* Reset top margin if needed */
+        }
+        .action-buttons button {
+             margin-right: 10px;
+             padding: 8px 15px;
+             cursor: pointer;
+             border: 1px solid #aaa;
+             border-radius: 4px;
+             background-color: #e7e7e7;
+        }
+         .action-buttons button:hover {
+              background-color: #dcdcdc;
+         }
+         .action-buttons button:disabled {
+              cursor: not-allowed;
+              opacity: 0.6;
+         }
+        #result-area {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            min-height: 50px;
+            white-space: pre-wrap; /* Keep line breaks */
+            font-weight: bold;
+        }
+        .error-input {
+            background-color: pink !important;
+            border-color: red !important;
+        }
+        /* Simple Modal for Help */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 650px;
+            border-radius: 5px;
+            max-height: 70vh; /* Limit height */
+            display: flex;
+            flex-direction: column;
+        }
+         .modal-header {
+             padding-bottom: 10px;
+             border-bottom: 1px solid #eee;
+         }
+         .modal-header h2 {
+             margin: 0;
+             font-size: 1.2em;
+         }
+         .modal-body {
+            padding: 15px 5px;
+            overflow-y: auto; /* Add scroll for content */
+            flex-grow: 1; /* Take available space */
+         }
+         .modal-body pre {
+             white-space: pre-wrap; /* Wrap text */
+             word-wrap: break-word;
+             font-size: 0.9em;
+             margin: 0;
+         }
+         .modal-footer {
+             padding-top: 10px;
+             border-top: 1px solid #eee;
+             text-align: right;
+         }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dominions 6 Spell Casting Simulator</h1>
+
+    <div class="players-container">
+        <fieldset class="player-setup" id="player1-setup">
+            <legend>Player 1 Setup</legend>
+            <div class="form-group">
+                <input type="checkbox" id="p1_has_crown"> <label for="p1_has_crown">Crown of the Magi</label>
+                <input type="checkbox" id="p1_in_chorus"> <label for="p1_in_chorus">Chorus Master</label>
+                <input type="checkbox" id="p1_in_communion"> <label for="p1_in_communion">Communion Master</label>
+            </div>
+            <div class="form-group">
+                <label for="p1_num_rounds">Number of Rounds:</label>
+                <select id="p1_num_rounds">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="round-inputs-container" id="p1_rounds_frame">
+                <!-- Round inputs will be generated here -->
+            </div>
+        </fieldset>
+
+        <fieldset class="player-setup" id="player2-setup">
+            <legend>Player 2 Setup</legend>
+            <div class="form-group">
+                <input type="checkbox" id="p2_has_crown"> <label for="p2_has_crown">Crown of the Magi</label>
+                <input type="checkbox" id="p2_in_chorus"> <label for="p2_in_chorus">Chorus Master</label>
+                <input type="checkbox" id="p2_in_communion"> <label for="p2_in_communion">Communion Master</label>
+            </div>
+            <div class="form-group">
+                <label for="p2_num_rounds">Number of Rounds:</label>
+                <select id="p2_num_rounds">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="round-inputs-container" id="p2_rounds_frame">
+                <!-- Round inputs will be generated here -->
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="controls-container">
+        <div class="simulation-params">
+            <div class="form-group">
+                <label for="num_simulations">Simulations:</label>
+                <input type="number" id="num_simulations" value="10000" min="1" style="width: 80px;">
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="simulate_delay" checked>
+                <label for="simulate_delay">Simulate Round 1 Start Delay</label>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button id="run_button">Run Simulation</button>
+            <button id="help_button">Help</button>
+        </div>
+    </div>
+
+    <div id="result-area">Result will appear here.</div>
+
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+     <div class="modal-header">
+        <span class="close-button" id="closeHelp">×</span>
+        <h2>Usage Help</h2>
+     </div>
+     <div class="modal-body">
+        <pre id="helpTextContainer">
+PLAYER SETUP:
+ - Check boxes if player has effects: Crown of the Magi (0.70x), Chorus Master (1.25x), Communion Master (1.25x). Factors stack.
+ - Select number of casting rounds (1-5).
+ - For each round, enter Base Cast Time % (50-325) or 'Timestop' (uses 125% base). Blank defaults to 100%.
+
+SIMULATION OPTIONS:
+ - Simulations: Number of Monte Carlo runs (default 10000).
+ - Simulate Round 1 Start Delay: [Default: ON] If checked, adds a random delay (0-999 ticks, based on Dom5 notes) before the *first* spell for each player starts. This approximates engine processing variation but not the full initial delay observed in battles. Uncheck to assume simultaneous starts for comparison.
+
+MECHANICS MODELLED:
+ - Casting Point: Effect occurs at (Total Cast Time / 2) ± 500 Ticks (fixed), clamped.
+ - Spell Duration: Base% converted to ticks, modified by stacking factors (Crown, Chorus, Communion).
+ - Next spell starts after previous spell's *full* duration elapses (plus initial delay if enabled).
+ - Timestop: 10.0x slowdown for 10 turns (75000 ticks), merges overlaps.
+
+OUTPUT:
+ - Estimated probability Player 1 finishes their last spell before Player 2.
+        </pre>
+    </div>
+    <div class="modal-footer">
+        <button id="closeHelpButton">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+    // --- Simulation Constants ---
+    const TICKS_PER_TURN = 7500;
+    const CAST_POINT_VARIATION_TICKS = 500.0; // Fixed based on research
+    const DEFAULT_NUM_SIMULATIONS = 10000;
+    const TIME_STOP_ROUNDS = 10;
+    const TIME_STOP_SLOWDOWN = 10.0;
+    // Multiplicative factors
+    const CHORUS_FACTOR = 1.25;       // Chorus Master / Spell Singer
+    const COMMUNION_FACTOR = 1.25;    // Communion Master
+    const CROWN_FACTOR = 0.70;        // Crown of the Magi
+
+    // --- Round 1 Start Delay Configuration ---
+    const ROUND1_DELAY_MIN_TICKS = 0.0;
+    const ROUND1_DELAY_MAX_TICKS = 999.0;
+
+    const EPSILON = 1e-9; // For floating point comparisons
+
+    // --- Simulation Logic ---
+
+    function calculate_final_T_i(base_pct, has_crown, in_chorus, in_communion) {
+        if (base_pct <= 0) return 0.0;
+        const base_T_i = (base_pct / 100.0) * TICKS_PER_TURN;
+        const chorus_factor = in_chorus ? CHORUS_FACTOR : 1.00;
+        const communion_factor = in_communion ? COMMUNION_FACTOR : 1.00;
+        const crown_factor = has_crown ? CROWN_FACTOR : 1.00;
+        const final_T_i = base_T_i * chorus_factor * communion_factor * crown_factor;
+        return Math.max(0.0, final_T_i);
+    }
+
+    // simulate_mage_cast: Inner function applies optional delay
+    function simulate_mage_cast(cast_rounds_with_T_i) {
+        // Returns a function that performs one simulation run
+        return function run_simulation(min_start_delay = 0.0, max_start_delay = 0.0) {
+            let start_offset = 0.0;
+            if (max_start_delay > min_start_delay && min_start_delay >= 0) {
+                 start_offset = min_start_delay + Math.random() * (max_start_delay - min_start_delay);
+            }
+            let current_start_time = start_offset;
+            let time_stop_events = [];
+            let last_actual_finish_time = start_offset;
+
+            if (!cast_rounds_with_T_i || cast_rounds_with_T_i.length === 0) {
+                 return { finishTime: last_actual_finish_time, timeStopEvents: time_stop_events };
+            }
+
+            for (let idx = 0; idx < cast_rounds_with_T_i.length; idx++) {
+                const [spell_type, T_i] = cast_rounds_with_T_i[idx];
+
+                if (T_i <= EPSILON) continue;
+
+                const absolute_start_for_this_spell = current_start_time; // Start time doesn't change mid-sequence based on previous finish variation
+                const half_duration = T_i / 2.0;
+                const offset_limit = CAST_POINT_VARIATION_TICKS;
+
+                // Calculate min/max random offset for finish time
+                const offset_min = Math.max(-offset_limit, -half_duration);
+                const offset_max = Math.min(offset_limit, T_i - half_duration);
+
+                let random_offset = 0.0;
+                if (offset_min < offset_max) {
+                    random_offset = offset_min + Math.random() * (offset_max - offset_min);
+                }
+
+                let actual_finish_time = absolute_start_for_this_spell + half_duration + random_offset;
+
+                // Clamp finish time between start time and start time + full duration
+                actual_finish_time = Math.max(absolute_start_for_this_spell, Math.min(actual_finish_time, absolute_start_for_this_spell + T_i));
+
+                last_actual_finish_time = actual_finish_time;
+
+                if (spell_type === 'time_stop') {
+                    time_stop_events.push([actual_finish_time, TIME_STOP_ROUNDS]);
+                }
+
+                // Next spell starts after the *full* duration of the current spell has passed from its start time
+                current_start_time = absolute_start_for_this_spell + T_i;
+            }
+            return { finishTime: last_actual_finish_time, timeStopEvents: time_stop_events };
+        };
+    }
+
+    // Simple implementation of bisect_right (finds insertion point)
+    // Assumes 'a' is sorted
+    function bisectRight(a, x) {
+        let lo = 0, hi = a.length;
+        while (lo < hi) {
+            let mid = Math.floor((lo + hi) / 2);
+            if (x < a[mid]) hi = mid;
+            else lo = mid + 1;
+        }
+        return lo;
+    }
+
+    // calculate_absolute_time_for_unslowed_ticks helper
+    function calculate_absolute_time_for_unslowed_ticks(start_absolute_time, unslowed_ticks_target, slow_intervals, slow_starts, slow_ends) {
+
+        function get_slow_factor(absolute_time) {
+            // Find the index of the interval the time falls into
+            // Find the rightmost interval index where start_time <= absolute_time
+             const idx = bisectRight(slow_starts, absolute_time) - 1;
+             // If a valid interval is found AND the time is before the end of that interval
+             if (idx >= 0 && absolute_time < slow_ends[idx]) {
+                 return TIME_STOP_SLOWDOWN; // Inside a slow interval
+             }
+             return 1.0; // Not slowed
+        }
+
+        if (unslowed_ticks_target <= EPSILON) {
+            return { absolute_time_elapsed: 0.0, final_absolute_time: start_absolute_time };
+        }
+
+        let current_abs_time = start_absolute_time;
+        let unslowed_ticks_accumulated = 0.0;
+        let absolute_time_elapsed = 0.0;
+
+        // Collect all relevant event points (start time, interval starts/ends after start time)
+        const event_points_set = new Set([start_absolute_time]);
+        for (const [start, end] of slow_intervals) {
+            if (start >= current_abs_time - EPSILON) event_points_set.add(start);
+            if (end >= current_abs_time - EPSILON) event_points_set.add(end);
+        }
+        // Sort event points numerically
+        const sorted_events = Array.from(event_points_set).sort((a, b) => a - b);
+
+        // Iterate through segments defined by event points
+        for (let i = 0; i < sorted_events.length; i++) {
+            const t1 = sorted_events[i];
+            // Ensure we only process points at or after the start time
+             if (t1 < start_absolute_time - EPSILON) continue;
+
+             // If t1 is significantly later than current_abs_time, it implies a gap.
+             // We should process the segment from current_abs_time up to t1 first.
+             // However, the logic below handles this by checking the slow factor at the start (or midpoint)
+             // of the [t1, t2] interval. If current_abs_time is already within a slow zone that started before t1,
+             // that's handled correctly.
+
+             const t2 = (i + 1 < sorted_events.length) ? sorted_events[i+1] : Infinity;
+
+             // Skip zero-duration segments
+             if (t2 - t1 <= EPSILON) continue;
+
+             // Determine slow factor for the interval [t1, t2)
+             // Use a point slightly after t1 to check the factor
+             const mid_point_for_check = t1 + EPSILON; // Check status just after t1 starts
+             const slow_factor = get_slow_factor(mid_point_for_check);
+
+             const absolute_interval_duration = t2 - t1;
+             const max_unslowed_in_interval = absolute_interval_duration / slow_factor;
+
+             const unslowed_needed_here = unslowed_ticks_target - unslowed_ticks_accumulated;
+
+             // Can we finish within this interval?
+             if (max_unslowed_in_interval >= unslowed_needed_here - EPSILON) {
+                 const abs_time_in_interval = unslowed_needed_here * slow_factor;
+                 // absolute_time_elapsed is the *duration* starting from the original start_absolute_time
+                 absolute_time_elapsed += (current_abs_time - start_absolute_time) + abs_time_in_interval - absolute_time_elapsed; // Add the duration spent in *this* interval
+
+                 const final_absolute_time = t1 + abs_time_in_interval; // The absolute time point when finished
+                 unslowed_ticks_accumulated += unslowed_needed_here;
+
+                 // Sanity check: Ensure final time isn't before start time due to float issues
+                 const final_time_checked = Math.max(start_absolute_time, final_absolute_time);
+
+                 return { absolute_time_elapsed: final_time_checked - start_absolute_time, final_absolute_time: final_time_checked };
+             } else {
+                 // Consume the entire interval
+                 absolute_time_elapsed += (current_abs_time - start_absolute_time) + absolute_interval_duration - absolute_time_elapsed; // Add the duration spent in *this* interval
+                 unslowed_ticks_accumulated += max_unslowed_in_interval;
+                 current_abs_time = t2; // Move to the start of the next interval
+             }
+        }
+
+        // Should ideally not be reached if target is finite, but return current state if it does
+         console.warn("calculate_absolute_time_for_unslowed_ticks reached end unexpectedly");
+         return { absolute_time_elapsed: current_abs_time - start_absolute_time, final_absolute_time: current_abs_time };
+    }
+
+
+    // simulate_opponent_cast: Inner function applies optional delay and considers player time stops
+    function simulate_opponent_cast(cast_rounds_with_T_i) {
+        const opponent_durations = cast_rounds_with_T_i.map(item => item[1]);
+
+        // Returns a function that performs one simulation run for the opponent
+        return function run_simulation(time_stop_events_from_player, min_start_delay = 0.0, max_start_delay = 0.0) {
+            let start_offset = 0.0;
+            if (max_start_delay > min_start_delay && min_start_delay >= 0) {
+                start_offset = min_start_delay + Math.random() * (max_start_delay - min_start_delay);
+            }
+
+            // --- Prepare Time Stop Intervals ---
+            let slow_intervals = [];
+            if (time_stop_events_from_player && time_stop_events_from_player.length > 0) {
+                // Sort events by start time
+                const sorted_events = [...time_stop_events_from_player].sort((a, b) => a[0] - b[0]);
+
+                let merged = [];
+                if (sorted_events.length > 0) {
+                    let [current_start, current_rounds] = sorted_events[0];
+                    let current_end = current_start + current_rounds * TICKS_PER_TURN;
+
+                    for (let i = 1; i < sorted_events.length; i++) {
+                        const [next_start, next_rounds] = sorted_events[i];
+                        const next_end = next_start + next_rounds * TICKS_PER_TURN;
+
+                        // Check for overlap or adjacency
+                        if (next_start <= current_end + EPSILON) {
+                            // Merge intervals
+                            current_end = Math.max(current_end, next_end);
+                        } else {
+                            // No overlap, push the current merged interval and start a new one
+                            merged.push([current_start, current_end]);
+                            current_start = next_start;
+                            current_end = next_end;
+                        }
+                    }
+                    // Push the last merged interval
+                    merged.push([current_start, current_end]);
+                }
+                slow_intervals = merged;
+            }
+
+            const slow_starts = slow_intervals.map(interval => interval[0]);
+            const slow_ends = slow_intervals.map(interval => interval[1]);
+
+            // --- Main Simulation Loop for Opponent ---
+            let opponent_current_start_time_abs = start_offset; // Absolute time when the current spell *can* start
+            let opponent_last_finish_time_abs = start_offset;   // Absolute time when the last spell *actually* finished
+
+             if (!opponent_durations || opponent_durations.length === 0) {
+                 return opponent_last_finish_time_abs;
+             }
+
+            for (const T_i_unslowed of opponent_durations) {
+                if (T_i_unslowed <= EPSILON) continue;
+
+                // Calculate how much *absolute* time needs to pass for the *full duration* (T_i_unslowed) to elapse
+                 const { absolute_time_elapsed: abs_duration_for_Ti, final_absolute_time: next_spell_start_time_abs } =
+                     calculate_absolute_time_for_unslowed_ticks(
+                         opponent_current_start_time_abs,
+                         T_i_unslowed,
+                         slow_intervals, slow_starts, slow_ends
+                     );
+
+                // Now calculate the randomized *actual* finish point
+                const half_unslowed = T_i_unslowed / 2.0;
+                const offset_limit = CAST_POINT_VARIATION_TICKS;
+                const offset_min = Math.max(-offset_limit, -half_unslowed);
+                const offset_max = Math.min(offset_limit, T_i_unslowed - half_unslowed);
+
+                let random_offset_unslowed = 0.0;
+                if (offset_min < offset_max) {
+                    random_offset_unslowed = offset_min + Math.random() * (offset_max - offset_min);
+                }
+
+                // Target finish point in *unslowed* ticks from the start of this spell
+                 let finish_target_unslowed = half_unslowed + random_offset_unslowed;
+                 finish_target_unslowed = Math.max(0.0, Math.min(finish_target_unslowed, T_i_unslowed));
+
+
+                // Calculate the *absolute* time corresponding to this unslowed finish target
+                 const { final_absolute_time: actual_finish_time_abs } =
+                     calculate_absolute_time_for_unslowed_ticks(
+                         opponent_current_start_time_abs,
+                         finish_target_unslowed,
+                         slow_intervals, slow_starts, slow_ends
+                     );
+
+                opponent_last_finish_time_abs = actual_finish_time_abs;
+
+                // The next spell starts conceptually after the full duration has passed in absolute time
+                opponent_current_start_time_abs = next_spell_start_time_abs;
+            }
+            return opponent_last_finish_time_abs;
+        };
+    }
+
+
+    // --- GUI Interaction Logic ---
+
+    const p1NumRoundsSelect = document.getElementById('p1_num_rounds');
+    const p2NumRoundsSelect = document.getElementById('p2_num_rounds');
+    const p1RoundsFrame = document.getElementById('p1_rounds_frame');
+    const p2RoundsFrame = document.getElementById('p2_rounds_frame');
+    const runButton = document.getElementById('run_button');
+    const helpButton = document.getElementById('help_button');
+    const numSimEntry = document.getElementById('num_simulations');
+    const delayCheck = document.getElementById('simulate_delay');
+    const resultLabel = document.getElementById('result-area');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelpSpan = document.getElementById('closeHelp');
+    const closeHelpButton = document.getElementById('closeHelpButton');
+
+    // Store references to dynamically created input elements
+    let p1RoundInputs = [];
+    let p2RoundInputs = [];
+
+    function updateRoundInputs(playerPrefix, numRounds, frameElement, inputStore) {
+        frameElement.innerHTML = ''; // Clear existing inputs
+        inputStore.length = 0; // Clear the storage array
+
+        // Add Headers
+        const headerRow = document.createElement('div');
+        headerRow.className = 'round-row';
+        const roundLabelHeader = document.createElement('span');
+        roundLabelHeader.className = 'round-label-header';
+        roundLabelHeader.textContent = 'Round';
+        const inputLabelHeader = document.createElement('span');
+        inputLabelHeader.className = 'round-input-header';
+        inputLabelHeader.textContent = "Base % (50-325 or 'Timestop')";
+        headerRow.appendChild(roundLabelHeader);
+        headerRow.appendChild(inputLabelHeader);
+        frameElement.appendChild(headerRow);
+
+
+        for (let i = 0; i < numRounds; i++) {
+            const roundNum = i + 1;
+            const row = document.createElement('div');
+            row.className = 'round-row';
+
+            const label = document.createElement('label');
+            label.textContent = `${roundNum}:`;
+            label.htmlFor = `${playerPrefix}_base_${roundNum}`;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = `${playerPrefix}_base_${roundNum}`;
+            input.placeholder = "100"; // Default indication
+            input.value = "100"; // Default value
+
+            row.appendChild(label);
+            row.appendChild(input);
+            frameElement.appendChild(row);
+            inputStore.push(input); // Store reference
+        }
+    }
+
+    function getCastRoundsWithT_iFromGui(playerPrefix, roundInputs) {
+        const has_crown = document.getElementById(`${playerPrefix}_has_crown`).checked;
+        const in_chorus = document.getElementById(`${playerPrefix}_in_chorus`).checked;
+        const in_communion = document.getElementById(`${playerPrefix}_in_communion`).checked;
+        const roundsData = [];
+        let allValid = true;
+
+        if (!roundInputs || roundInputs.length === 0) return { valid: false, data: null, errorMsg: "No round inputs found." };
+
+        roundInputs.forEach(input => {
+            input.classList.remove('error-input'); // Reset error style
+            const baseValStr = input.value.trim().toLowerCase();
+            let base_pct = 100.0;
+            let spell_type = 'normal';
+            let validBase = false;
+
+            if (!baseValStr) {
+                base_pct = 100.0;
+                spell_type = 'normal';
+                validBase = true;
+                input.value = "100"; // Set default in UI
+            } else if (baseValStr === 'timestop') {
+                base_pct = 125.0; // Timestop base cast time %
+                spell_type = 'time_stop';
+                validBase = true;
+            } else {
+                const pct = parseFloat(baseValStr);
+                if (!isNaN(pct) && pct >= 50 && pct <= 325) {
+                    base_pct = pct;
+                    spell_type = 'normal';
+                    validBase = true;
+                } else {
+                    input.classList.add('error-input');
+                    allValid = false;
+                }
+            }
+
+            if (validBase) {
+                const final_T_i = calculate_final_T_i(base_pct, has_crown, in_chorus, in_communion);
+                roundsData.push([spell_type, final_T_i]);
+            } else {
+                // Placeholder for invalid round, though allValid flag handles error reporting
+                roundsData.push(null);
+            }
+        });
+
+        if (!allValid) {
+            return { valid: false, data: null, errorMsg: `Invalid input for ${playerPrefix === 'p1' ? 'Player 1' : 'Player 2'}. Base % must be 50-325 or 'Timestop'. Blank defaults to 100%.` };
+        }
+
+        // Filter out any nulls potentially left (though shouldn't happen with current logic)
+        const validRoundsData = roundsData.filter(r => r !== null);
+        return { valid: true, data: validRoundsData };
+    }
+
+    function setControlsState(disabled) {
+        runButton.disabled = disabled;
+        helpButton.disabled = disabled;
+        numSimEntry.disabled = disabled;
+        delayCheck.disabled = disabled;
+        p1NumRoundsSelect.disabled = disabled;
+        p2NumRoundsSelect.disabled = disabled;
+        [...p1RoundInputs, ...p2RoundInputs].forEach(input => input.disabled = disabled);
+        document.getElementById('p1_has_crown').disabled = disabled;
+        document.getElementById('p1_in_chorus').disabled = disabled;
+        document.getElementById('p1_in_communion').disabled = disabled;
+        document.getElementById('p2_has_crown').disabled = disabled;
+        document.getElementById('p2_in_chorus').disabled = disabled;
+        document.getElementById('p2_in_communion').disabled = disabled;
+    }
+
+     async function runSimulationGui() {
+         resultLabel.textContent = "Parsing inputs...";
+         await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+
+         // --- Validate Simulation Count ---
+         const numSimsToRun = parseInt(numSimEntry.value);
+         if (isNaN(numSimsToRun) || numSimsToRun <= 0) {
+             alert("Input Error: Simulations must be a number > 0.");
+             numSimEntry.focus();
+             numSimEntry.classList.add('error-input');
+             resultLabel.textContent = "Error.";
+             return;
+         } else {
+             numSimEntry.classList.remove('error-input');
+         }
+
+         // --- Determine Round 1 Delay based on Checkbox ---
+         const simulateDelay = delayCheck.checked;
+         const minDelayTicks = simulateDelay ? ROUND1_DELAY_MIN_TICKS : 0.0;
+         const maxDelayTicks = simulateDelay ? ROUND1_DELAY_MAX_TICKS : 0.0;
+         const p1MinDelay = minDelayTicks, p1MaxDelay = maxDelayTicks;
+         const p2MinDelay = minDelayTicks, p2MaxDelay = maxDelayTicks;
+
+         // --- Get Mage Rounds ---
+         const p1Result = getCastRoundsWithT_iFromGui('p1', p1RoundInputs);
+         if (!p1Result.valid) {
+             alert(p1Result.errorMsg);
+             resultLabel.textContent = "Player 1 input error.";
+             return;
+         }
+         const player_rounds_T_i = p1Result.data;
+
+         const p2Result = getCastRoundsWithT_iFromGui('p2', p2RoundInputs);
+         if (!p2Result.valid) {
+             alert(p2Result.errorMsg);
+             resultLabel.textContent = "Player 2 input error.";
+             return;
+         }
+         const opponent_rounds_T_i = p2Result.data;
+
+         // --- Filter Zero-Time Rounds & Handle Edge Cases ---
+         const player_rounds_to_sim = player_rounds_T_i.filter(r => r[1] > EPSILON);
+         const opponent_rounds_to_sim = opponent_rounds_T_i.filter(r => r[1] > EPSILON);
+
+         const player_has_time = player_rounds_to_sim.length > 0;
+         const opponent_has_time = opponent_rounds_to_sim.length > 0;
+
+         if (!player_has_time) {
+             const resultText = "Player 1 has 0 total cast time. " + (opponent_has_time ? "Chance P1 finishes first: 100.00%" : "P2 also 0. Tie?");
+             resultLabel.textContent = resultText;
+             alert("Sim Result: " + resultText);
+             return;
+         }
+         if (!opponent_has_time) {
+             const resultText = "Player 2 has 0 total cast time. Chance P1 finishes first: 0.00%";
+             resultLabel.textContent = resultText;
+             alert("Sim Result: Player 2 has 0 total cast time.");
+             return;
+         }
+
+         // --- Prepare for Simulation ---
+         resultLabel.textContent = `Running ${numSimsToRun} simulations... (0%)`;
+         setControlsState(true); // Disable controls
+         await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+
+         // --- Run Simulation Loop ---
+         try {
+             const player_runner_factory = simulate_mage_cast(player_rounds_to_sim);
+             const opponent_runner_factory = simulate_opponent_cast(opponent_rounds_to_sim);
+             let wins = 0;
+             const updateChunk = Math.max(1, Math.floor(numSimsToRun / 100)); // Update progress roughly 100 times
+
+             for (let i = 0; i < numSimsToRun; i++) {
+                 // Pass delay arguments to the inner run_simulation function
+                 const { finishTime: p_finish, timeStopEvents: time_stops } = player_runner_factory(p1MinDelay, p1MaxDelay);
+                 const o_finish = opponent_runner_factory(time_stops, p2MinDelay, p2MaxDelay);
+
+                 if (p_finish < o_finish - EPSILON) {
+                     wins++;
+                 }
+
+                 // Progress update logic
+                 if (i % updateChunk === 0 || i === numSimsToRun - 1) {
+                     const progPct = ((i + 1) / numSimsToRun) * 100;
+                     resultLabel.textContent = `Running ${numSimsToRun} simulations... (${progPct.toFixed(0)}%)`;
+                     // Yield to the browser to update UI and prevent freezing
+                     await new Promise(resolve => setTimeout(resolve, 0));
+                 }
+             }
+
+             const prob = (wins / numSimsToRun) * 100.0;
+             resultLabel.textContent = `Out of ${numSimsToRun} simulations, Player 1 finished first ${wins} times.\n`
+                                     + `Chance Player 1 finishes first: ${prob.toFixed(2)}%`;
+         } catch (error) {
+             console.error("Simulation Error:", error);
+             resultLabel.textContent = `Simulation Error: ${error.message}`;
+             alert(`Simulation Error: ${error.message}\nCheck console for details.`);
+         } finally {
+             setControlsState(false); // Re-enable controls
+         }
+     }
+
+
+    // --- Initial Setup ---
+    p1NumRoundsSelect.addEventListener('change', (e) => {
+        updateRoundInputs('p1', parseInt(e.target.value), p1RoundsFrame, p1RoundInputs);
+    });
+    p2NumRoundsSelect.addEventListener('change', (e) => {
+        updateRoundInputs('p2', parseInt(e.target.value), p2RoundsFrame, p2RoundInputs);
+    });
+
+    runButton.addEventListener('click', runSimulationGui);
+
+    helpButton.addEventListener('click', () => {
+        // Dynamically fill help text just in case constants change (though they are hardcoded here)
+        const helpPre = document.getElementById('helpTextContainer');
+        helpPre.textContent = `
+PLAYER SETUP:
+ - Check boxes if player has effects: Crown of the Magi (${CROWN_FACTOR.toFixed(2)}x), Chorus Master (${CHORUS_FACTOR.toFixed(2)}x), Communion Master (${COMMUNION_FACTOR.toFixed(2)}x). Factors stack.
+ - Select number of casting rounds (1-5).
+ - For each round, enter Base Cast Time % (50-325) or 'Timestop' (uses 125% base). Blank defaults to 100%.
+
+SIMULATION OPTIONS:
+ - Simulations: Number of Monte Carlo runs (default ${DEFAULT_NUM_SIMULATIONS}).
+ - Simulate Round 1 Start Delay: [Default: ON] If checked, adds a random delay (${ROUND1_DELAY_MIN_TICKS.toFixed(0)}-${ROUND1_DELAY_MAX_TICKS.toFixed(0)} ticks, based on Dom5 notes) before the *first* spell for each player starts. This approximates engine processing variation but not the full initial delay observed in battles. Uncheck to assume simultaneous starts for comparison.
+
+MECHANICS MODELLED:
+ - Casting Point: Effect occurs at (Total Cast Time / 2) ± ${CAST_POINT_VARIATION_TICKS.toFixed(0)} Ticks (fixed), clamped.
+ - Spell Duration: Base% converted to ticks (${TICKS_PER_TURN}/turn), modified by stacking factors (Crown, Chorus, Communion).
+ - Next spell starts after previous spell's *full* duration elapses (plus initial delay if enabled).
+ - Timestop: ${TIME_STOP_SLOWDOWN.toFixed(1)}x slowdown for ${TIME_STOP_ROUNDS} turns (${TIME_STOP_ROUNDS * TICKS_PER_TURN} ticks), merges overlaps.
+
+OUTPUT:
+ - Estimated probability Player 1 finishes their last spell before Player 2.
+        `;
+        helpModal.style.display = "block";
+    });
+
+    closeHelpSpan.addEventListener('click', () => {
+        helpModal.style.display = "none";
+    });
+    closeHelpButton.addEventListener('click', () => {
+        helpModal.style.display = "none";
+    });
+
+    // Close modal if clicked outside of it
+    window.addEventListener('click', (event) => {
+        if (event.target == helpModal) {
+            helpModal.style.display = "none";
+        }
+    });
+
+
+    // Initialize round inputs on page load
+    updateRoundInputs('p1', parseInt(p1NumRoundsSelect.value), p1RoundsFrame, p1RoundInputs);
+    updateRoundInputs('p2', parseInt(p2NumRoundsSelect.value), p2RoundsFrame, p2RoundInputs);
+
+</script>
+
+</body>
+</html>
