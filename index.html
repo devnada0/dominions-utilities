@@ -2,64 +2,169 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dominions 6 Utilities</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      line-height: 1.6;
+      background-color: #f4f7f6;
       color: #333;
-      max-width: 800px;
-      margin: 50px auto;
-      padding: 20px;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 90vh;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 40px 50px;
       border-radius: 8px;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      max-width: 750px;
+      width: 90%;
     }
 
     h1 {
       text-align: center;
-      color: #444;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    li {
-      margin: 15px 0;
-    }
-
-    a {
-      display: inline-block;
-      padding: 12px 18px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      transition: background-color 0.2s;
-    }
-
-    a:hover {
-      background-color: #0056b3;
+      color: #2c3e50;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 2.2em;
     }
 
     .subtitle {
       text-align: center;
-      font-size: 1rem;
-      color: #666;
-      margin-bottom: 30px;
+      font-size: 1.15em;
+      color: #555;
+      margin-bottom: 40px;
     }
+
+    .utilities-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 30px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .utilities-list li {
+      margin: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .utility-button {
+      /* display: inline-flex; Removed */
+      display: block; /* Ensures block behavior for width/padding */
+      text-align: center; /* Center text inside the button */
+      padding: 14px 28px;
+      background-color: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      font-size: 1.05em;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      min-width: 320px;
+      max-width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .utility-button:hover {
+      background-color: #0056b3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+     .utility-button:active {
+         background-color: #004085;
+         transform: translateY(0px);
+     }
+
+    /* Removed .button-icon rule */
+
+    .explanations {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: left;
+        font-size: 0.95em;
+        color: #444;
+    }
+    .explanations h4 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    .explanations p {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+     .explanations strong {
+         color: #2c3e50;
+     }
+
   </style>
 </head>
 <body>
-  <h1>Dominions 6 Utilities</h1>
-  <div class="subtitle">Web tools to assist with casting, fatigue, communions, and more</div>
-  <ul>
-    <li><a href="spell-casting-simulator/cast-times.html">🧙 Spell Casting Simulator</a></li>
-    <li><a href="communion-fatigue-calculator/communion-fatigue-calculator.html">🔮 Communion Fatigue Calculator</a></li>
-    <li><a href="preaching-calculator/preaching-calculator.html">🔮 Preaching Calculator</a></li>
-    <!-- Future tools go here -->
-  </ul>
+  <div class="container">
+    <h1>Dominions 6 Utilities</h1>
+    <div class="subtitle">A collection of calculators and simulators for Dominions 6 mechanics.</div>
+
+    <ul class="utilities-list">
+      <li>
+        <!-- Icon span removed -->
+        <a href="spell-casting-simulator/cast-times.html" class="utility-button">
+          Spell Casting Simulator
+        </a>
+      </li>
+      <li>
+        <!-- Icon span removed -->
+        <a href="communion-fatigue-calculator/communion-fatigue-calculator.html" class="utility-button">
+          Communion Fatigue Calculator
+        </a>
+      </li>
+      <li>
+        <!-- Icon span removed -->
+        <a href="preaching-calculator/preaching-calculator.html" class="utility-button">
+          Preaching Calculator
+        </a>
+      </li>
+      <li>
+        <!-- Icon span removed -->
+        <a href="collision-calculator/collision-calculator.html" class="utility-button">
+           Collision Calculator
+        </a>
+      </li>
+      <!-- Future tools go here -->
+    </ul>
+
+    <div class="explanations">
+        <h4>About the Tools:</h4>
+        <p>
+            <strong>Spell Casting Simulator:</strong> Estimate the probability of one mage finishing their spell sequence before another, considering cast time modifiers, random variation, and Time Stop.
+        </p>
+        <p>
+            <strong>Communion Fatigue Calculator:</strong> Simulate fatigue gain and HP loss in communions to predict how long slaves can sustain spellcasting under various conditions.
+        </p>
+        <p>
+            <strong>Preaching Calculator:</strong> Calculate the probability distribution for gaining dominion points (candle change) in a province based on priest levels, starting dominion, and temple presence.
+        </p>
+        <p>
+            <strong>Collision Calculator:</strong> Simulate unit collisions based on chassis HP to estimate win/loss/slip percentages according to Illwiki mechanics.
+        </p>
+    </div>
+
+  </div> <!-- End container -->
 </body>
 </html>
