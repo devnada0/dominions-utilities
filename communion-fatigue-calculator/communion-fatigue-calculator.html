@@ -1,1 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominions 6 – Communion Simulator</title>
+    <!-- Include Plotly.js -->
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.4;
+            padding: 15px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .input-column {
+            flex: 1; /* Takes up space */
+            min-width: 250px; /* Minimum width before wrapping */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .output-column {
+            flex: 2; /* Takes up more space */
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        fieldset {
+            border: 1px solid #ccc;
+            padding: 10px 15px 15px 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        legend {
+            font-weight: bold;
+            padding: 0 5px;
+            font-size: 0.95em;
+        }
+        .input-grid {
+             display: grid;
+             grid-template-columns: auto 1fr; /* Label, Input */
+             gap: 5px 10px; /* Row gap, Column gap */
+             align-items: center;
+        }
+        .input-grid label {
+            grid-column: 1;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        .input-grid input[type="number"] {
+            grid-column: 2;
+            width: 80px; /* Fixed width for number inputs */
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .sim-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .sim-controls div { /* For checkbox alignment */
+            display: flex;
+            align-items: center;
+        }
+         .sim-controls input[type="checkbox"] {
+            margin-right: 5px;
+         }
+        .sim-controls button {
+             padding: 8px 15px;
+             cursor: pointer;
+             border: 1px solid #aaa;
+             border-radius: 4px;
+             background-color: #e7e7e7;
+             margin-right: 10px;
+        }
+         .sim-controls button:hover {
+              background-color: #dcdcdc;
+         }
+        #output-text {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9em;
+            white-space: pre;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 150px; /* Ensure some space */
+            overflow-x: auto;
+        }
+        #plot {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 450px; /* Minimum plot height */
+            flex-grow: 1; /* Allow plot to take remaining space */
+        }
+        .error-input {
+            background-color: pink !important;
+            border-color: red !important;
+        }
+    </style>
+</head>
+<body>
 
+<div class="container">
+    <div class="input-column">
+        <fieldset>
+            <legend>Spell Settings</legend>
+            <div class="input-grid">
+                <label for="base_fatigue">Base Fatigue:</label><input type="number" id="base_fatigue" value="40">
+                <label for="path_req">Path Req:</label><input type="number" id="path_req" value="2" step="1">
+                <label for="enc">Encumbrance:</label><input type="number" id="enc" value="3">
+                <label for="mag_scale">Magic Scale:</label><input type="number" id="mag_scale" value="0" min="-3" max="3" step="1">
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Caster/Slave Settings</legend>
+            <div class="input-grid">
+                <label for="caster_lvl">Caster Level:</label><input type="number" id="caster_lvl" value="1" step="1" min="0">
+                <label for="slave_lvl">Slave Level:</label><input type="number" id="slave_lvl" value="1" step="1" min="0">
+                <label for="n_slaves"># Slaves:</label><input type="number" id="n_slaves" value="8" step="1" min="0">
+                <label for="n_masters"># Masters:</label><input type="number" id="n_masters" value="4" step="1" min="1">
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Fatigue/HP Settings</legend>
+            <div class="input-grid">
+                <label for="initial_slave_fatigue">Initial Slave Fat:</label><input type="number" id="initial_slave_fatigue" value="23">
+                <label for="initial_master_fatigue">Initial Master Fat:</label><input type="number" id="initial_master_fatigue" value="23">
+                <label for="slave_hp">Slave HP:</label><input type="number" id="slave_hp" value="10" step="1" min="1">
+                <label for="extra_reinvig">Extra Reinvig:</label><input type="number" id="extra_reinvig" value="0">
+                <label for="regen">Healing/Turn:</label><input type="number" id="regen" value="0">
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Simulation Settings</legend>
+            <div class="input-grid">
+                <label for="n_turns">Turns:</label><input type="number" id="n_turns" value="100" step="1" min="1" max="10000">
+            </div>
+            <div class="sim-controls">
+                 <div>
+                     <input type="checkbox" id="reinvig_spell">
+                     <label for="reinvig_spell">Reinvigoration spell each round</label>
+                 </div>
+                 <div>
+                     <button id="simulate_button">Simulate</button>
+                     <button id="reset_button">Reset</button>
+                 </div>
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="output-column">
+        <pre id="output-text">Run simulation to see results.</pre>
+        <div id="plot"></div>
+    </div>
+</div>
+
+<script>
+    // --- Default Values ---
+    const defaultValues = {
+        base_fatigue: 40, path_req: 2, enc: 3, mag_scale: 0,
+        caster_lvl: 1, slave_lvl: 1, n_slaves: 8, n_masters: 4,
+        initial_slave_fatigue: 23, initial_master_fatigue: 23, slave_hp: 10,
+        extra_reinvig: 0, regen: 0, n_turns: 100, reinvig_spell: false
+    };
+
+    // --- Simulation Logic (Translated from Python) ---
+
+    function comm_master_level(slaves, caster_lvl) {
+        slaves = Math.floor(slaves);
+        if (slaves <= 0) return caster_lvl;
+        const bonus = Math.floor(Math.log2(slaves));
+        return caster_lvl + Math.max(0, bonus);
+    }
+
+    function cost_master(p, cm_lvl) {
+        const path_diff = cm_lvl - p.path_req;
+        let fatigue_reduction_divisor = 1 + Math.max(0, path_diff);
+        if (fatigue_reduction_divisor <= 0) fatigue_reduction_divisor = 1;
+        let num = p.base_fatigue / fatigue_reduction_divisor;
+        num *= (1 - 0.1 * p.mag_scale);
+        num += p.enc;
+        const communion_divisor = 1 + Math.max(0, p.n_slaves);
+        if (communion_divisor === 0) return num;
+        return num / communion_divisor;
+    }
+
+    function slave_mult(cl, sl) {
+        cl = Math.floor(cl);
+        sl = Math.floor(sl);
+        if (sl <= 0) return cl <= 1 ? 2.0 : 4.0;
+        const ratio_half_cl = Math.floor(cl / 2) / sl;
+        const ratio_full_cl = cl / sl;
+        if (ratio_half_cl > 1) return 4.0;
+        if (ratio_full_cl > 1) return 2.0;
+        if (cl === sl) return 1.0;
+        return 0.5;
+    }
+
+    function drn() {
+        const roll = () => {
+            let s = 0;
+            while (true) {
+                const r = Math.floor(Math.random() * 6) + 1; // 1 to 6
+                s += (r === 6) ? 5 : r;
+                if (r < 6) break;
+            }
+            return s;
+        };
+        return roll() - roll();
+    }
+
+    function simulate(p) {
+        const cm_lvl = comm_master_level(p.n_slaves, p.caster_lvl);
+        const m_cost = cost_master(p, cm_lvl);
+        const s_mult = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0;
+        const s_cost = p.n_slaves > 0 ? m_cost * s_mult : 0;
+        const dmg_cast = p.n_slaves > 0 ? 1 + Math.floor(s_cost / 50) : 0;
+
+        const initial_mf_val = Math.max(0, Math.min(p.initial_master_fatigue, 200));
+        let mf = Array(p.n_masters).fill(initial_mf_val);
+        let resting = Array(p.n_masters).fill(false);
+        let mf_hist = Array(p.n_masters).fill(null).map(() => [initial_mf_val]); // History for each master
+        let cast_count = Array(p.n_masters).fill(0);
+
+        let fatigue = p.n_slaves > 0 ? Math.max(0, Math.min(p.initial_slave_fatigue, 200)) : 0;
+        let hp = p.n_slaves > 0 ? Math.max(1, p.slave_hp) : 1;
+        const initial_hp = p.n_slaves > 0 ? hp : 1;
+
+        let fat_hist = [fatigue];
+        let hp_hist = [hp];
+
+        let slaves_active = (p.n_slaves > 0 && hp > 0);
+
+        for (let turn = 1; turn <= p.n_turns; turn++) {
+            let active_masters_this_turn = [];
+            for (let i = 0; i < p.n_masters; i++) {
+                if (resting[i]) {
+                    resting[i] = false;
+                } else if (mf[i] < 100) {
+                    active_masters_this_turn.push(i);
+                }
+            }
+
+            let casts_this_round = 0;
+
+            if (slaves_active) {
+                casts_this_round = active_masters_this_turn.length;
+                for (let cast_index = 0; cast_index < casts_this_round; cast_index++) {
+                    fatigue = Math.min(fatigue + s_cost, 200);
+                    if (fatigue >= 200) {
+                        hp = Math.max(0, hp - dmg_cast);
+                        if (hp === 0) {
+                            slaves_active = false;
+                            casts_this_round = cast_index + 1; // Count the cast that killed the slaves
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Apply fatigue to masters who actually cast (up to casts_this_round limit)
+            if (casts_this_round > 0) {
+                 for (let i = 0; i < casts_this_round; i++) {
+                     const master_index = active_masters_this_turn[i];
+                     mf[master_index] = Math.min(mf[master_index] + m_cost, 200);
+                     cast_count[master_index]++;
+                     if (mf[master_index] >= 100) {
+                         resting[master_index] = true;
+                     }
+                 }
+            }
+
+            // Reinvigoration Spell
+            if (p.reinvig_spell) {
+                if (slaves_active) {
+                    fatigue = Math.max(fatigue - Math.max(1 + drn(), 0), 0);
+                }
+                for (let i = 0; i < p.n_masters; i++) {
+                    mf[i] = Math.max(mf[i] - Math.max(1 + drn(), 0), 0);
+                }
+            }
+
+            // Natural Recovery + Extra Reinvig
+            if (slaves_active) {
+                const rec_slave = (fatigue > 100 ? 5 : 1) + p.extra_reinvig;
+                fatigue = Math.max(fatigue - rec_slave, 0);
+            }
+            for (let i = 0; i < p.n_masters; i++) {
+                const rec_m = (mf[i] > 100 ? 5 : 1) + p.extra_reinvig;
+                mf[i] = Math.max(mf[i] - rec_m, 0);
+            }
+
+            // Healing / Regeneration
+            if (slaves_active && p.regen > 0) {
+                hp = Math.min(initial_hp, hp + p.regen);
+            }
+
+            // Record history
+            fat_hist.push(fatigue);
+            hp_hist.push(hp);
+            for (let i = 0; i < p.n_masters; i++) {
+                mf_hist[i].push(mf[i]);
+            }
+
+            // If slaves died, stop simulation for slaves and continue master recovery
+            if (p.n_slaves > 0 && !slaves_active && hp_hist[hp_hist.length - 2] > 0) { // Check if just died
+                 const died_at_turn = turn;
+                 const remaining_turns = p.n_turns - died_at_turn;
+                 if (remaining_turns > 0) {
+                      // Pad slave histories
+                     fat_hist = fat_hist.concat(Array(remaining_turns).fill(fatigue));
+                     hp_hist = hp_hist.concat(Array(remaining_turns).fill(hp));
+
+                     // Continue simulating master recovery
+                     for (let rem_turn = 0; rem_turn < remaining_turns; rem_turn++) {
+                         for (let i = 0; i < p.n_masters; i++) {
+                             let current_mf = mf_hist[i][mf_hist[i].length - 1];
+                             let current_resting = resting[i]; // Resting state at time of death
+
+                             if (current_resting && rem_turn === 0) { // Only skip first recovery turn if resting when slaves died
+                                 // Skip recovery for this turn if resting
+                             } else {
+                                 const rec_m = (current_mf > 100 ? 5 : 1) + p.extra_reinvig;
+                                 current_mf = Math.max(current_mf - rec_m, 0);
+                             }
+                              // Update resting state for the *next* recovery turn simulation if needed
+                              // (This simplified version doesn't strictly need the resting state after slaves die,
+                              // recovery happens regardless, but keeping the variable)
+                             resting[i] = false; // Assume they recover enough not to be forced resting
+
+                             mf_hist[i].push(current_mf);
+                         }
+                     }
+                 }
+                 break; // Exit main simulation loop
+            }
+        } // End turn loop
+
+        // Ensure arrays have the expected length if simulation stopped early
+        const expected_len = p.n_turns + 1;
+        fat_hist = fat_hist.slice(0, expected_len);
+        hp_hist = hp_hist.slice(0, expected_len);
+        for (let i = 0; i < p.n_masters; i++) {
+            mf_hist[i] = mf_hist[i].slice(0, expected_len);
+        }
+
+
+        let survived = p.n_turns;
+        if (p.n_slaves > 0) {
+            for (let i = 0; i < hp_hist.length; i++) {
+                if (hp_hist[i] <= 0) {
+                    survived = Math.max(0, i - 1); // Died *during* turn i, survived i-1 turns
+                    break;
+                }
+            }
+        }
+
+        const total_casts = cast_count.reduce((sum, count) => sum + count, 0);
+        const master_cost_calc = cost_master(p, cm_lvl); // Recalculate for display consistency
+        const slave_cost_calc = p.n_slaves > 0 ? master_cost_calc * slave_mult(p.caster_lvl, p.slave_lvl) : 0;
+        const slave_mult_calc = p.n_slaves > 0 ? slave_mult(p.caster_lvl, p.slave_lvl) : 0;
+        const dmg_cast_calc = p.n_slaves > 0 ? 1 + Math.floor(slave_cost_calc / 50) : 0;
+
+        return {
+            cm_lvl: cm_lvl,
+            master_cost: master_cost_calc,
+            slave_cost: slave_cost_calc,
+            slave_mult: slave_mult_calc,
+            dmg_cast: dmg_cast_calc,
+            fat: fat_hist,
+            hp: hp_hist,
+            mf_hist: mf_hist, // Array of arrays
+            casts: cast_count, // Array
+            total_casts: total_casts,
+            survived: survived,
+            initial_slave_fatigue_actual: fat_hist[0],
+            initial_master_fatigue_actual: (mf_hist[0] && mf_hist[0].length > 0) ? mf_hist[0][0] : 0,
+        };
+    }
+
+    // --- GUI Interaction ---
+
+    const outputTextElement = document.getElementById('output-text');
+    const plotElement = document.getElementById('plot');
+    const inputIds = Object.keys(defaultValues); // Get IDs from defaults
+
+    function getInputValues() {
+        const params = {};
+        let isValid = true;
+        inputIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`Element with ID ${id} not found!`);
+                isValid = false;
+                return;
+            }
+            element.classList.remove('error-input'); // Clear previous errors
+
+            if (element.type === 'checkbox') {
+                params[id] = element.checked;
+            } else if (element.type === 'number') {
+                const value = parseFloat(element.value);
+                if (isNaN(value)) {
+                    alert(`Invalid input for ${element.previousElementSibling?.textContent || id}. Please enter a number.`);
+                    element.classList.add('error-input');
+                    isValid = false;
+                }
+                // Add specific range checks from Python code
+                if (id === 'n_turns' && (value <= 0 || value > 10000)) { alert("Turns must be 1-10000."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'n_slaves' && value < 0) { alert("Slaves cannot be negative."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'n_masters' && value < 1) { alert("Masters must be >= 1."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'slave_hp' && params['n_slaves'] > 0 && value <= 0) { alert("Slave HP must be positive."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'path_req' && value < 0) { alert("Path Req cannot be negative."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'caster_lvl' && value < 0) { alert("Caster Level cannot be negative."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'slave_lvl' && value < 0) { alert("Slave Level cannot be negative."); element.classList.add('error-input'); isValid = false; }
+                if (id === 'mag_scale' && (value < -3 || value > 3)) { alert("Magic Scale must be -3 to +3."); element.classList.add('error-input'); isValid = false; }
+
+                params[id] = value; // Store as number
+            } else {
+                 params[id] = element.value; // Store as string if not number/checkbox
+            }
+        });
+
+        // Re-check slave_hp dependency if n_slaves was processed later
+        if (isValid && params['n_slaves'] > 0 && params['slave_hp'] <= 0) {
+             alert("Slave HP must be positive when slaves > 0.");
+             document.getElementById('slave_hp').classList.add('error-input');
+             isValid = false;
+        }
+
+        return isValid ? params : null;
+    }
+
+    function resetForm() {
+        inputIds.forEach(id => {
+            const element = document.getElementById(id);
+            element.classList.remove('error-input');
+            if (element.type === 'checkbox') {
+                element.checked = defaultValues[id];
+            } else {
+                element.value = defaultValues[id];
+            }
+        });
+        outputTextElement.textContent = "Run simulation to see results.";
+        Plotly.purge(plotElement); // Clear the plot
+    }
+
+    function runSimulation() {
+        const params = getInputValues();
+        if (!params) return; // Validation failed
+
+        try {
+            const results = simulate(params);
+            updateOutputText(results, params);
+            updatePlot(results, params);
+        } catch (error) {
+            console.error("Simulation Error:", error);
+            outputTextElement.textContent = `Simulation Error:\n${error}\n\nCheck console for more details.`;
+            Plotly.purge(plotElement);
+        }
+    }
+
+    function updateOutputText(r, p) {
+         const slave_mult_str = (p.n_slaves > 0 && r.master_cost > 0) ? `(x${r.slave_mult.toFixed(1)} multiple)` : "";
+         const label_width = 25;
+
+         // Format values with fixed precision and then get length for padding
+        const values = [
+            r.cm_lvl.toFixed(0),
+            r.master_cost.toFixed(2),
+            `${r.slave_cost.toFixed(2)} ${slave_mult_str}`,
+            r.dmg_cast.toFixed(0),
+            r.initial_slave_fatigue_actual.toFixed(2),
+            r.initial_master_fatigue_actual.toFixed(2),
+            r.total_casts.toFixed(0),
+            r.survived.toFixed(0),
+        ];
+         const value_width = Math.max(...values.map(val => val.length)); // Dynamic width
+
+         const output_lines = [
+             `Communion Master Level:`.padEnd(label_width) + r.cm_lvl.toFixed(0).padStart(value_width),
+             `Master Cost per Cast:`.padEnd(label_width) + r.master_cost.toFixed(2).padStart(value_width),
+             `Slave Cost per Cast:`.padEnd(label_width) + `${r.slave_cost.toFixed(2)} ${slave_mult_str}`.padStart(value_width),
+             `Damage per Cast:`.padEnd(label_width) + r.dmg_cast.toFixed(0).padStart(value_width),
+             `Initial Slave Fatigue:`.padEnd(label_width) + r.initial_slave_fatigue_actual.toFixed(2).padStart(value_width),
+             `Initial Master Fatigue:`.padEnd(label_width) + r.initial_master_fatigue_actual.toFixed(2).padStart(value_width),
+             `Total Casts:`.padEnd(label_width) + r.total_casts.toFixed(0).padStart(value_width),
+             `Turns Survived:`.padEnd(label_width) + r.survived.toFixed(0).padStart(value_width),
+         ];
+        outputTextElement.textContent = output_lines.join("\n");
+    }
+
+    function updatePlot(r, p) {
+        const t = Array.from({ length: r.fat.length }, (_, i) => i); // Turns 0 to n_turns
+        const traces = [];
+        const annotations = []; // For "No Slaves" text
+
+        // --- Slave Fatigue Trace ---
+        if (p.n_slaves > 0) {
+            traces.push({
+                x: t, y: r.fat, type: 'scatter', mode: 'lines+markers',
+                name: 'Slave Fatigue', yaxis: 'y1',
+                line: { color: 'rgb(31, 119, 180)' }, // tab:blue
+                marker: { size: 4 }
+            });
+        } else {
+             annotations.push({
+                 text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.83, // Approx position for top plot
+                 showarrow: false, font: { size: 14, color: 'grey' }
+             });
+        }
+
+        // --- Slave HP Trace ---
+         if (p.n_slaves > 0) {
+             traces.push({
+                 x: t, y: r.hp, type: 'scatter', mode: 'lines+markers',
+                 name: 'Slave HP', yaxis: 'y2',
+                 line: { color: 'rgb(44, 160, 44)' }, // tab:green
+                 marker: { size: 4 }
+             });
+         } else {
+              annotations.push({
+                  text: 'No Slaves', xref: 'paper', yref: 'paper', x: 0.5, y: 0.5, // Approx position for middle plot
+                  showarrow: false, font: { size: 14, color: 'grey' }
+              });
+         }
+
+        // --- Master Fatigue Traces ---
+        const num_masters_to_plot = Math.min(p.n_masters, 5);
+        const colors = Plotly.d3.scale.category10(); // Get Plotly's default color scale
+
+        for (let idx = 0; idx < num_masters_to_plot; idx++) {
+            if (idx < r.mf_hist.length) {
+                const series = r.mf_hist[idx];
+                 const time_axis = t.slice(0, series.length);
+                 traces.push({
+                     x: time_axis, y: series, type: 'scatter', mode: 'lines',
+                     name: `Master ${idx + 1} Fat`, yaxis: 'y3',
+                     line: { color: colors(idx) } // Use Plotly colors
+                 });
+            }
+        }
+         if (p.n_masters === 0) {
+             annotations.push({
+                 text: 'No Masters', xref: 'paper', yref: 'paper', x: 0.5, y: 0.17, // Approx position for bottom plot
+                 showarrow: false, font: { size: 14, color: 'grey' }
+             });
+         }
+
+
+        // --- Layout ---
+        const max_hp = p.n_slaves > 0 ? p.slave_hp : 1;
+        const min_hp_observed = p.n_slaves > 0 && r.hp.length > 0 ? Math.min(...r.hp) : 0;
+        const hp_y_min = Math.max(-0.5, min_hp_observed - 1);
+        const hp_y_max = max_hp + Math.max(1, 0.1 * max_hp);
+
+        const layout = {
+            //grid: {rows: 3, columns: 1, pattern: 'independent'}, // Causes issues with shared x
+            xaxis: { title: 'Turn', domain: [0, 1] }, // Shared X axis
+            yaxis1: { // Slave Fatigue
+                title: 'Slave Fatigue', domain: [0.66, 1], // Top third
+                range: [-5, 215], anchor: 'x'
+            },
+            yaxis2: { // Slave HP
+                title: 'Slave HP', domain: [0.33, 0.66], // Middle third
+                range: [hp_y_min, hp_y_max], anchor: 'x'
+            },
+            yaxis3: { // Master Fatigue
+                 title: 'Master Fatigue', domain: [0, 0.33], // Bottom third
+                 range: [-5, 150], anchor: 'x'
+             },
+            title: 'Simulation Results',
+            showlegend: true,
+            legend: { x: 1.05, y: 1 }, // Place legend outside
+            margin: { l: 50, r: 50, t: 50, b: 50 }, // Adjust margins
+            hovermode: 'closest',
+            shapes: [ // Horizontal lines
+                 // Slave Fatigue lines (referencing yaxis y1)
+                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
+                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y1', y0: 200, y1: 200, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
+                 // Master Fatigue line (referencing yaxis y3)
+                 { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y3', y0: 100, y1: 100, line: { color: 'rgba(31, 119, 180, 0.5)', width: 1, dash: 'dash' } },
+            ],
+            annotations: annotations // Add text annotations if needed
+        };
+
+        Plotly.newPlot(plotElement, traces, layout, {responsive: true});
+    }
+
+    // --- Event Listeners ---
+    document.getElementById('simulate_button').addEventListener('click', runSimulation);
+    document.getElementById('reset_button').addEventListener('click', resetForm);
+
+    // --- Initial State ---
+    resetForm(); // Set default values on load
+    // Optionally run simulation once on load?
+    // runSimulation();
+
+</script>
+
+</body>
+</html>
