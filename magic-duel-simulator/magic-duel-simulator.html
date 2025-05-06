@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One-Round Magic Duel Simulator</title>
+    <style>
+        /* CSS unchanged from last full version */
+        body {font-family: sans-serif;line-height: 1.6;margin: 20px;background-color: #f4f4f4;color: #333;}
+        .container {background-color: #fff;padding: 20px;border-radius: 8px;box-shadow: 0 0 10px rgba(0,0,0,0.1);max-width: 800px;margin: auto;}
+        h1 {color: #333;text-align: center;}
+        .input-section {
+            margin-bottom: 8px;   /* Further reduced */
+            padding: 8px 12px;    /* Further reduced */
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .input-section h3 {
+            margin-top: 0;
+            margin-bottom: 8px;  /* Further reduced */
+            font-size: 1.1em;     /* Slightly smaller section title */
+        }
+        .input-grid { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Smaller min for items */
+            gap: 8px; /* Further reduced */
+        }
+        .input-field label {
+            display: block;
+            margin-bottom: 2px; /* Further reduced */
+            font-weight: bold;
+            font-size: 0.9em; /* Slightly smaller label font */
+        }
+        .input-field input[type="number"], .input-field input[type="text"] {
+            width: calc(100% - 14px); /* Adjusted for new padding */
+            padding: 5px 7px;       /* Further reduced padding */
+            border: 1px solid #ddd;
+            border-radius: 3px;     /* Slightly smaller radius */
+            box-sizing: border-box;
+            font-size: 0.9em; /* Slightly smaller input font */
+        }
+        .mode-radios { 
+            margin-top: 8px;   /* Further reduced */
+            display: flex; 
+            flex-wrap: wrap; 
+            align-items: center;
+            gap: 5px 10px;  /* Reduced column gap */
+         }
+         .mode-radios input[type="radio"] { 
+            margin-right: 2px; /* Further reduced */
+            vertical-align: middle;
+        }
+        .mode-radios label { 
+            margin-right: 8px; /* Further reduced */
+            vertical-align: middle;
+            font-size: 0.85em; /* Slightly smaller radio labels */
+        }
+
+        /* Button styling */
+        button#simulateBtn {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 15px; /* Slightly smaller button */
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;     /* Slightly smaller button font */
+            display: block;
+            width: 100%;
+            margin-top: 15px;   /* Reduced space above button */
+            margin-bottom: 15px;/* Reduced space below button */
+        }block;width: 100%;margin-top: 20px;margin-bottom: 20px;}
+        button#simulateBtn:hover {background-color: #4cae4c;}
+        button#simulateBtn:disabled {background-color: #ccc;cursor: not-allowed;}
+        #resultsArea, #statusArea {margin-top: 20px;padding: 15px;background-color: #e9e9e9;border-radius: 4px;}
+        #resultsArea h3, #statusArea h3 {margin-top: 0;}
+        #resultsArea p, #statusArea p {margin: 8px 0;}
+        .histogram-chart-container {display: flex;flex-direction: column; gap: 2px; margin-top: 10px;margin-bottom: 15px;padding: 10px;background-color: #f8f9fa; border: 1px solid #dee2e6;border-radius: 4px;max-height: 350px; overflow-y: auto;}
+        .histogram-bar-group {display: flex; align-items: center;gap: 10px; padding: 3px 0; }
+        .histogram-label {flex-basis: 200px; flex-shrink: 0;font-family: monospace;font-size: 0.9em;white-space: pre; text-align: right; padding-right: 5px; }
+        .histogram-bar {height: 18px; background-color: #007bff; border-radius: 3px;transition: width 0.3s ease-in-out; min-width: 1px; }
+        .collapsible {background-color: #f9f9f9;color: #333;cursor: pointer;padding: 15px;width: 100%;border: 1px solid #eee;text-align: left;outline: none;font-size: 1.1em;margin-top: 30px;border-radius: 4px;}
+        .collapsible:hover {background-color: #e9e9e9;}
+        .collapsible.active {border-bottom-left-radius: 0;border-bottom-right-radius: 0;}
+        .documentation-content {padding: 0 18px;display: none;overflow: hidden;background-color: #f9f9f9;border: 1px solid #eee;border-top: none;border-bottom-left-radius: 4px;border-bottom-right-radius: 4px;}
+        .documentation-content h2, .documentation-content h3 {margin-top: 15px;}
+        .error-message {color: red;font-weight: bold;margin-top: 10px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>One-Round Magic Duel Simulator</h1>
+        <!-- Input sections unchanged from last full version -->
+        <div class="input-section">
+            <h3>Attacking Mage Details</h3>
+            <div class="input-grid"> 
+                <div id="fixedAttackerInputs" class="input-field"> 
+                    <label for="attackerMageCount">Number of Attacking Mages:</label>
+                    <input type="number" id="attackerMageCount" value="5" min="1">
+                </div>
+                <div id="searchAttackerInputs" class="input-field" style="display:none;"> 
+                    <label for="requiredWinRate">Required Win Rate (%):</label>
+                    <input type="number" id="requiredWinRate" value="95" min="1" max="100">
+                </div>
+                <div class="input-field">
+                    <label for="attackerMageLevel">Attacking Mage Astral Level:</label>
+                    <input type="number" id="attackerMageLevel" value="1" min="0">
+                </div>
+            </div>
+        </div>
+        <div class="input-section">
+            <h3>Target Mages Details</h3>
+            <div class="input-grid">
+                <div class="input-field">
+                    <label for="targetMageCount">Number of Target Mages:</label>
+                    <input type="number" id="targetMageCount" value="1" min="1">
+                </div>
+                <div class="input-field">
+                    <label for="targetMageLevel">Target Mage Astral Level:</label>
+                    <input type="number" id="targetMageLevel" value="1" min="0">
+                </div>
+            </div>
+        </div>
+        <div class="input-section">
+            <h3>Simulation Control</h3>
+            <div class="input-grid simulation-control-grid">  <!-- Add class here -->
+                <div class="input-field">
+                    <label for="simRuns">Simulation Runs:</label>
+                    <input type="number" id="simRuns" value="10000" min="100">
+                </div>
+            </div>
+            <!-- Wrap radio buttons in a new div with class="mode-radios" -->
+             <div class="mode-radios"> 
+                <input type="radio" id="modeFixed" name="simMode" value="fixed" checked>
+                <label for="modeFixed">Fixed Attackers Mode</label>
+                <input type="radio" id="modeSearch" name="simMode" value="search">
+                <label for="modeSearch">Search Minimum Attackers Mode</label>
+            </div>
+        </div>
+        
+        <button id="simulateBtn">Simulate</button>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="statusArea" style="display:none;">
+            <h3>Status:</h3>
+            <p id="statusText"></p>
+        </div>
+
+        <div id="resultsArea" style="display:none;">
+            <h3>Results:</h3>
+            <p id="resultSummary"></p>
+            <p id="winRateResult"></p>
+            <p id="avgLossesOverallResult"></p> 
+            
+            <div id="histogramWinsOutput" style="display:none;"> 
+                <h4>Distribution of Attacker Losses (Successful Engagements - Targets Killed):</h4>
+                <div id="histogramWinsChart" class="histogram-chart-container"></div>
+            </div>
+
+            <div id="histogramLossesOutput" style="display:none;"> 
+                <h4>Distribution of Attacker Losses (Failed Engagements - Targets Survived):</h4>
+                <div id="histogramLossesChart" class="histogram-chart-container"></div>
+            </div>
+        </div>
+
+        <button type="button" class="collapsible">Tool Explanation & Mechanics ▼</button>
+        <div class="documentation-content">
+            <!-- ... Documentation ... -->
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const targetMageCountEl = document.getElementById('targetMageCount');
+        const targetMageLevelEl = document.getElementById('targetMageLevel');
+        const attackerMageLevelEl = document.getElementById('attackerMageLevel'); 
+        const simRunsEl = document.getElementById('simRuns');
+        const attackerMageCountEl = document.getElementById('attackerMageCount'); 
+        const requiredWinRateEl = document.getElementById('requiredWinRate');
+        const simulateBtn = document.getElementById('simulateBtn');
+        const errorMessageEl = document.getElementById('errorMessage');
+        const statusAreaEl = document.getElementById('statusArea');
+        const statusTextEl = document.getElementById('statusText');
+        const resultsAreaEl = document.getElementById('resultsArea');
+        const resultSummaryEl = document.getElementById('resultSummary');
+        const winRateResultEl = document.getElementById('winRateResult');
+        const avgLossesOverallResultEl = document.getElementById('avgLossesOverallResult'); 
+        const modeFixedRadio = document.getElementById('modeFixed');
+        const modeSearchRadio = document.getElementById('modeSearch');
+        const fixedAttackerInputsEl = document.getElementById('fixedAttackerInputs'); 
+        const searchAttackerInputsEl = document.getElementById('searchAttackerInputs'); 
+
+        const attackerDetailsGridEl = fixedAttackerInputsEl.parentElement; 
+        const attackerLevelDivEl = attackerMageLevelEl.parentElement; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const coll = document.querySelector(".collapsible");
+            if (coll) {
+                coll.addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    const content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                        this.textContent = "Tool Explanation & Mechanics ▼";
+                    } else {
+                        content.style.display = "block";
+                        this.textContent = "Tool Explanation & Mechanics ▲";
+                    }
+                });
+            }
+            simulateBtn.addEventListener('click', handleSimulationStart);
+            modeFixedRadio.addEventListener('change', toggleModeInputs);
+            modeSearchRadio.addEventListener('change', toggleModeInputs);
+            toggleModeInputs(); 
+        });
+
+        function toggleModeInputs() {
+            if (modeFixedRadio.checked) {
+                fixedAttackerInputsEl.style.display = 'block'; 
+                searchAttackerInputsEl.style.display = 'none';
+                attackerDetailsGridEl.insertBefore(fixedAttackerInputsEl, attackerLevelDivEl);
+            } else {
+                fixedAttackerInputsEl.style.display = 'none';
+                searchAttackerInputsEl.style.display = 'block'; 
+                attackerDetailsGridEl.insertBefore(searchAttackerInputsEl, attackerLevelDivEl);
+            }
+        }
+        
+        function getIntValue(element, defaultValue) {
+            const val = parseInt(element.value, 10);
+            return isNaN(val) ? defaultValue : val;
+        }
+        
+        function rollD6() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function simulateOneRoundJS(attackerCount, defenderCount, attackerLevel, defenderLevel) {
+            let attackerAlive = new Array(attackerCount).fill(true);
+            let defenderTargetedAndKilled = new Array(defenderCount).fill(false);
+
+            if (defenderCount === 0) { 
+                return { success: true, attackerLosses: 0, defenderLosses: 0 };
+            }
+
+            for (let i = 0; i < attackerCount; i++) {
+                const targetIndex = Math.floor(Math.random() * defenderCount);
+                const attackerRoll = rollD6() + attackerLevel;
+                const defenderRoll = rollD6() + defenderLevel;
+
+                if (attackerRoll > defenderRoll) {
+                    defenderTargetedAndKilled[targetIndex] = true; 
+                } else if (attackerRoll < defenderRoll) {
+                    attackerAlive[i] = false; 
+                } else { 
+                    attackerAlive[i] = false; 
+                    defenderTargetedAndKilled[targetIndex] = true; 
+                }
+            }
+
+            const attackerLosses = attackerAlive.filter(alive => !alive).length;
+            const defenderLosses = defenderTargetedAndKilled.filter(killed => killed).length;
+            const success = (defenderLosses === defenderCount); 
+            
+            return { success, attackerLosses, defenderLosses };
+        }
+
+        function simulateRunsJS(attackerCount, defenderCount, attackerLevel, defenderLevel, numRuns) {
+            let wins = 0;
+            let attackerLossesOnWins = [];
+            let attackerLossesOnLosses = [];
+            let totalLossesSumOverall = 0;
+
+            if (defenderCount === 0 && numRuns > 0) {
+                 return { 
+                     winRate: 100, 
+                     avgAttackerLossesOverall: 0, 
+                     attackerLossesOnWins: new Array(numRuns).fill(0),
+                     attackerLossesOnLosses: [] 
+                    };
+            }
+             if (defenderCount === 0 && numRuns === 0) {
+                return { winRate: 0, avgAttackerLossesOverall: null, attackerLossesOnWins: [], attackerLossesOnLosses: [] };
+            }
+
+            for (let i = 0; i < numRuns; i++) {
+                const { success, attackerLosses } = simulateOneRoundJS(attackerCount, defenderCount, attackerLevel, defenderLevel);
+                totalLossesSumOverall += attackerLosses;
+                if (success) {
+                    wins++;
+                    attackerLossesOnWins.push(attackerLosses);
+                } else {
+                    attackerLossesOnLosses.push(attackerLosses);
+                }
+            }
+            
+            const winRate = (numRuns > 0) ? (wins / numRuns) * 100 : 0;
+            const avgAttackerLossesOverall = (numRuns > 0) ? totalLossesSumOverall / numRuns : null;
+                    
+            return { 
+                winRate, 
+                avgAttackerLossesOverall, 
+                attackerLossesOnWins,
+                attackerLossesOnLosses    
+            };
+        }
+        
+        function generateHistogramData(lossesData, totalEvents) { 
+            if (!lossesData || lossesData.length === 0 || totalEvents === 0) {
+                return { chartData: [] };
+            }
+            const counts = {};
+            lossesData.forEach(item => {
+                counts[item] = (counts[item] || 0) + 1;
+            });
+
+            let maxCount = 0;
+            Object.values(counts).forEach(val => {
+                if (val > maxCount) maxCount = val;
+            });
+
+            if (maxCount === 0) {
+                return { chartData: [] };
+            }
+
+            const sortedLosses = Object.keys(counts).map(Number).sort((a, b) => a - b);
+            const chartData = [];
+
+            for (const loss of sortedLosses) {
+                const count = counts[loss];
+                const percentageOfEvents = (count / totalEvents) * 100;
+                const barWidthPercentage = (count / maxCount) * 100;
+
+                chartData.push({
+                    lossCount: loss, 
+                    rawCount: count,
+                    percentageText: percentageOfEvents.toFixed(1) + "%",
+                    barWidth: barWidthPercentage 
+                });
+            }
+            return { chartData };
+        }
+
+        function renderGraphicalHistogram(chartData, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = ''; 
+
+            if (!chartData || chartData.length === 0) {
+                const p = document.createElement('p');
+                p.style.textAlign = 'center';
+                p.style.padding = '10px';
+                p.textContent = "No data for this distribution.";
+                container.appendChild(p);
+                return;
+            }
+
+            chartData.forEach(item => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'histogram-bar-group';
+
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'histogram-label';
+                
+                const lossDisplay = String(item.lossCount).padStart(2);
+                const countDisplay = String(item.rawCount).padStart(6);
+                const percentDisplay = String(item.percentageText).padStart(7); 
+                labelDiv.textContent = `${lossDisplay} losses: ${countDisplay} (${percentDisplay})`;
+
+                const barDiv = document.createElement('div');
+                barDiv.className = 'histogram-bar';
+                barDiv.style.width = `${item.barWidth}%`; 
+                barDiv.title = `Count: ${item.rawCount}`; 
+
+                groupDiv.appendChild(labelDiv);
+                groupDiv.appendChild(barDiv);
+                container.appendChild(groupDiv);
+            });
+        }
+
+         function displayResults(summary, winRate, avgLossesOverall, attackerLossesOnWinsData, attackerLossesOnLossesData, numRuns, isSearch = false) {
+            resultSummaryEl.textContent = summary;
+            
+            const p_hat = winRate / 100;
+            let winRateStdError = 0;
+            if (numRuns > 0 && p_hat >= 0 && p_hat <=1 && !isNaN(p_hat)) { 
+                winRateStdError = Math.sqrt(p_hat * (1 - p_hat) / numRuns) * 100; 
+            }
+            winRateResultEl.textContent = `Win rate (all targets killed): ${winRate.toFixed(2)}% (±${winRateStdError.toFixed(2)}%)`;
+            
+            if (avgLossesOverall !== null) {
+                 avgLossesOverallResultEl.textContent = `Average attacker losses (all engagements): ${avgLossesOverall.toFixed(2)}`;
+            } else {
+                avgLossesOverallResultEl.textContent = ""; // Clear if no data
+            }
+
+            // Histogram for Wins
+            const histogramWinsOutputEl = document.getElementById('histogramWinsOutput');
+            const totalWins = attackerLossesOnWinsData.length;
+            if (totalWins > 0) {
+                // Percentage relative to total WINS for this histogram
+                const { chartData: winsChartData } = generateHistogramData(attackerLossesOnWinsData, totalWins); 
+                renderGraphicalHistogram(winsChartData, 'histogramWinsChart'); 
+                histogramWinsOutputEl.style.display = 'block';
+            } else {
+                 // Handle display when there are 0 wins
+                 const winsChartContainer = document.getElementById('histogramWinsChart');
+                 winsChartContainer.innerHTML = '<p style="text-align:center; padding:10px;">No successful engagements (0% win rate).</p>';
+                 histogramWinsOutputEl.style.display = 'block'; // Still show the section with the message
+            }
+
+            // Histogram for Losses (Failed Engagements)
+            const histogramLossesOutputEl = document.getElementById('histogramLossesOutput');
+            const totalFailedEngagements = attackerLossesOnLossesData.length; 
+            if (totalFailedEngagements > 0) {
+                // *** CHANGE HERE: Percentage relative to TOTAL RUNS (numRuns) ***
+                const { chartData: lossesChartData } = generateHistogramData(attackerLossesOnLossesData, numRuns); 
+                renderGraphicalHistogram(lossesChartData, 'histogramLossesChart');
+                histogramLossesOutputEl.style.display = 'block';
+            } else {
+                // Handle display when there are 0 failures (100% win rate)
+                 const lossesChartContainer = document.getElementById('histogramLossesChart');
+                 lossesChartContainer.innerHTML = '<p style="text-align:center; padding:10px;">No failed engagements (100% win rate).</p>';
+                 histogramLossesOutputEl.style.display = 'block'; // Still show the section with the message
+            }
+            
+            // Ensure results area is visible
+            resultsAreaEl.style.display = 'block';
+            if (!isSearch) { 
+                statusAreaEl.style.display = 'none';
+            }
+        }
+
+        async function handleSimulationStart() {
+            errorMessageEl.textContent = '';
+            resultsAreaEl.style.display = 'none';
+            statusAreaEl.style.display = 'none';
+            statusTextEl.textContent = '';
+            simulateBtn.disabled = true;
+
+            const defenderCount = getIntValue(targetMageCountEl, 1); 
+            const defenderLevel = getIntValue(targetMageLevelEl, 1);
+            const attackerLevel = getIntValue(attackerMageLevelEl, 1); 
+            const numRuns = getIntValue(simRunsEl, 10000);
+
+            if (defenderCount < 0 || attackerLevel < 0 || defenderLevel < 0) {
+                 errorMessageEl.textContent = "Counts and levels cannot be negative.";
+                 simulateBtn.disabled = false;
+                 return;
+            }
+             if (numRuns < 1) {
+                 errorMessageEl.textContent = "Simulation runs must be at least 1.";
+                 simulateBtn.disabled = false;
+                 return;
+            }
+            if (defenderCount === 0) { 
+                 errorMessageEl.textContent = "Simulating with 0 target mages: Win rate is 100%, 0 losses.";
+                 displayResults("Results for 0 target mages:", 100, 0, 
+                                numRuns > 0 ? new Array(numRuns).fill(0) : [], // attackerLossesOnWins
+                                [], // attackerLossesOnLosses
+                                numRuns > 0 ? numRuns : 1);
+                 simulateBtn.disabled = false;
+                 return;
+            }
+
+
+            if (modeFixedRadio.checked) {
+                const attackerCount = getIntValue(attackerMageCountEl, 1); 
+                if (attackerCount < 1) {
+                    errorMessageEl.textContent = "Attacking mages must be at least 1.";
+                    simulateBtn.disabled = false;
+                    return;
+                }
+                statusAreaEl.style.display = 'block';
+                statusTextEl.textContent = `Simulating ${numRuns} runs for ${attackerCount} attackers...`;
+                
+                await new Promise(resolve => setTimeout(resolve, 10)); 
+
+                const { winRate, avgAttackerLossesOverall, attackerLossesOnWins, attackerLossesOnLosses } = simulateRunsJS(attackerCount, defenderCount, attackerLevel, defenderLevel, numRuns);
+                const summary = `Results for ${attackerCount} attacking mage(s) vs ${defenderCount} target mage(s) over ${numRuns} runs:`;
+                displayResults(summary, winRate, avgAttackerLossesOverall, attackerLossesOnWins, attackerLossesOnLosses, numRuns);
+
+            } else { // Search mode
+                const requiredWinRate = getIntValue(requiredWinRateEl, 95);
+                statusAreaEl.style.display = 'block';
+                let searchStatusHTML = `Searching for minimum attackers for ≥${requiredWinRate}% win rate...<br/>`;
+                statusTextEl.innerHTML = searchStatusHTML;
+                
+                let found = false;
+                const maxSearchAttacker = defenderCount * 50 + 1; 
+                const startAttackerCount = Math.max(1, defenderCount); 
+
+                for (let currentAttackerCount = startAttackerCount; currentAttackerCount <= maxSearchAttacker; currentAttackerCount++) {
+                    searchStatusHTML += `Testing ${currentAttackerCount} attacking mage(s)... `;
+                    statusTextEl.innerHTML = searchStatusHTML;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 10)); 
+                    
+                    const { winRate, avgAttackerLossesOverall, attackerLossesOnWins, attackerLossesOnLosses } = simulateRunsJS(currentAttackerCount, defenderCount, attackerLevel, defenderLevel, numRuns);
+                    
+                    searchStatusHTML += `Win rate = ${winRate.toFixed(2)}%<br/>`;
+                    statusTextEl.innerHTML = searchStatusHTML;
+
+                    if (winRate >= requiredWinRate) {
+                        const summary = `Minimum ${currentAttackerCount} attacking mage(s) needed for ≥${requiredWinRate}% success vs ${defenderCount} target mage(s):`;
+                        displayResults(summary, winRate, avgAttackerLossesOverall, attackerLossesOnWins, attackerLossesOnLosses, numRuns, true); 
+                        searchStatusHTML += `<strong>Found: ${currentAttackerCount} attackers achieve ${winRate.toFixed(2)}% win rate.</strong>`;
+                        statusTextEl.innerHTML = searchStatusHTML;
+                        found = true;
+                        break;
+                    }
+                     if (currentAttackerCount === maxSearchAttacker && !found) { 
+                        searchStatusHTML += `Search limit (${maxSearchAttacker} attackers) reached. Required win rate not achieved.`;
+                        statusTextEl.innerHTML = searchStatusHTML;
+                    }
+                }
+                if (!found) { 
+                    if (!statusTextEl.innerHTML.includes("Search limit")) { 
+                        searchStatusHTML += `No configuration in the tested range (up to ${maxSearchAttacker} attackers) achieved the required success rate.`;
+                        statusTextEl.innerHTML = searchStatusHTML;
+                    }
+                    resultsAreaEl.style.display = 'none'; 
+                }
+            }
+            simulateBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
