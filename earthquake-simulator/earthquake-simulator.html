@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-F8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Damage Simulator - UI Refinements</title>
+    <style>
+        :root {
+            --bg-color: #f7f8fc;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --muted-text-color: #495057; /* For less prominent text like percentages */
+            --primary-color-action: #007bff;
+            --primary-hover-color-action: #0056b3;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0,0,0,0.07);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .simulator-container {
+            background-color: var(--surface-color);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px var(--shadow-color);
+            width: 100%;
+            max-width: 960px;
+        }
+
+        header h1 {
+            color: var(--text-color);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-size: 1.75em;
+            font-weight: 600;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .input-panel, .output-panel {
+            flex: 1;
+            min-width: 320px;
+        }
+        
+        .input-panel {
+            padding: 25px;
+            background-color: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .input-panel h2, .output-panel h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.25em;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .input-group {
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 12px; 
+            flex-wrap: wrap; 
+        }
+
+        .input-group label {
+            flex: 0 0 180px; 
+            margin-bottom: 0;
+            font-weight: 500;
+            font-size: 0.9em;
+            color: var(--muted-text-color); /* Main label text part color */
+            padding-right: 10px;
+            box-sizing: border-box;
+            line-height: 1.3; /* Adjust for multi-line possibility within label */
+        }
+      
+        .input-group label .main-label-text {
+            color: var(--text-color); /* Make the main part of the label standard text color */
+            display: block; /* Ensure it's on its own line if small text follows */
+        }
+        
+        .input-group label small { /* For subtext in labels */
+            display: block; /* Let it be on a new line below main-label-text */
+            font-size: 0.85em;
+            font-weight: normal;
+            line-height: 1.2;
+            color: #6c757d; 
+            margin-top: 1px; 
+        }
+
+        .checkbox-group > label { /* This label is for the group title itself, if any */
+            flex: 1 1 100%; 
+            margin-bottom: 8px;
+            font-weight: 500; 
+        }
+
+
+        .input-group input[type="number"] {
+            flex: 1; 
+            min-width: 80px; 
+            padding: 8px 10px; 
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .checkbox-group {
+            margin-bottom: 18px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+        .checkbox-group .input-group { 
+            display: block; 
+            margin-bottom: 6px;
+        }
+
+        .input-group input[type="checkbox"] + label { /* Label next to checkbox */
+            display: inline-block;
+            margin-left: 8px;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: var(--text-color);
+            vertical-align: middle;
+            cursor: pointer;
+        }
+         .input-group input[type="checkbox"] + label small { /* Small text for checkbox labels */
+            font-size: 0.9em; 
+            color: var(--muted-text-color);
+            display: inline; /* Keep it inline for checkbox subtext */
+            margin-top: 0;
+         }
+         .input-group input[type="checkbox"] {
+            vertical-align: middle;
+            width: 16px;
+            height: 16px;
+         }
+
+
+        .input-group input[type="number"]:focus {
+            border-color: var(--primary-color-action);
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+            outline: none;
+        }
+
+        .action-button {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            background-color: var(--primary-color-action);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.05em;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-top: 25px;
+        }
+
+        .action-button:hover {
+            background-color: var(--primary-hover-color-action);
+        }
+        .action-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+
+        #results, #histogramContainer {
+            margin-top: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        #results:last-child, #histogramContainer:last-child {
+             margin-bottom: 0;
+        }
+
+        #results pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            margin: 0;
+            font-family: var(--font-family);
+            line-height: 1.7;
+        }
+        
+        .output-panel h3 {
+             margin-top: 0;
+             margin-bottom: 15px;
+             font-size: 1.1em;
+             color: var(--muted-text-color);
+             font-weight: 500;
+        }
+
+        .histogram-bar-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .histogram-label {
+            width: auto;
+            min-width: 45px;
+            white-space: nowrap;
+            color: var(--muted-text-color);
+            text-align: left;
+            padding-right: 8px;
+        }
+
+        .histogram-count { 
+            width: 130px;
+            text-align: right;
+            margin-right: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+            white-space: nowrap;
+        }
+        .histogram-count .percentage { 
+            font-size: 0.9em;
+            color: var(--muted-text-color);
+            font-weight: normal;
+        }
+
+        .histogram-bar {
+            height: 14px;
+            background-color: var(--primary-color-action);
+            border-radius: 3px;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .histogram-bar.zero {
+             background-color: #e9ecef;
+        }
+
+        /* Documentation Styles */
+        details {
+            margin-top: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            background-color: var(--surface-color);
+        }
+        summary {
+            font-weight: 500; cursor: pointer; margin-bottom: 10px; color: var(--text-color);
+            font-size: 1.05em; list-style: none; position: relative; padding-left: 25px;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::before {
+            content: '▶'; position: absolute; left: 0; font-size: 0.9em;
+            transition: transform 0.2s ease-in-out; color: var(--muted-text-color);
+        }
+        details[open] summary::before { transform: rotate(90deg); }
+        summary:hover { color: var(--primary-color-action); }
+        .docs-content {
+            font-size: 0.9em; line-height: 1.6; padding-top: 15px;
+            border-top: 1px solid var(--border-color); color: var(--muted-text-color);
+        }
+        .docs-content h4 {
+            margin-top: 15px; margin-bottom: 8px; border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px; color: var(--text-color); font-size: 1em; font-weight: 500;
+        }
+        .docs-content h4:first-of-type { margin-top: 0; }
+        .docs-content p, .docs-content ul { margin-bottom: 10px; }
+        .docs-content ul, .docs-content ol { padding-left: 25px; }
+        .docs-content li { margin-bottom: 5px; }
+        .docs-content code {
+            background-color: #e9ecef; padding: 2px 6px; border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 0.9em; color: #d6336c;
+        }
+
+        @media (max-width: 820px) {
+            .input-panel, .output-panel {
+                min-width: 100%;
+            }
+            .simulator-container {
+                padding: 20px;
+            }
+            header h1 {
+                font-size: 1.6em;
+                margin-bottom: 20px;
+            }
+            /* On smaller screens, stack labels above inputs again for number inputs */
+            .input-group label:not(input[type="checkbox"] + label) { 
+                 flex: 1 1 100%;
+                 margin-bottom: 6px; 
+                 padding-right: 0;
+            }
+             .input-group input[type="number"] {
+                 min-width: 100%; 
+             }
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <header>
+            <h1>Earthquake Damage Simulator</h1>
+        </header>
+
+        <div class="main-content">
+            <div class="input-panel">
+                <h2>Configuration</h2>
+                <div class="input-group">
+                    <label for="maxHp"><span class="main-label-text">Unit Max HP</span></label>
+                    <input type="number" id="maxHp" value="10" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="unitDefense">
+                        <span class="main-label-text">Unit Base Defense</span>
+                        <small>(no shield/weapon)</small>
+                    </label>
+                    <input type="number" id="unitDefense" value="10" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="armorFixed"><span class="main-label-text">Unit Base Armor</span></label>
+                    <input type="number" id="armorFixed" value="7" min="0">
+                </div>
+
+                <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 15px 0;">
+
+                <div class="input-group">
+                    <label for="quakeDamageBase"><span class="main-label-text">Earthquake Base Dmg</span></label>
+                    <input type="number" id="quakeDamageBase" value="8" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="numEq"><span class="main-label-text">Number of Earthquakes</span></label>
+                    <input type="number" id="numEq" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="runs"><span class="main-label-text">Simulation Runs</span></label>
+                    <input type="number" id="runs" value="10000" min="1">
+                </div>
+
+                <div class="checkbox-group">
+                     <div class="input-group">
+                        <input type="checkbox" id="simulateDefenseCheck" checked>
+                        <label for="simulateDefenseCheck">Simulate Defense Check <small>(Open 3d6 vs Base Def)</small></label>
+                    </div>
+                    <div class="input-group">
+                        <input type="checkbox" id="armorPiercing" checked>
+                        <label for="armorPiercing">Armor Piercing <small>(50% base armor reduction)</small></label>
+                    </div>
+                    <div class="input-group">
+                        <input type="checkbox" id="simulateCrits" checked>
+                        <label for="simulateCrits">Simulate Critical Hits <small>(Armor roll ≤ 2 triggers)</small></label>
+                    </div>
+                </div>
+
+                <button class="action-button" onclick="startSimulation()">Run Simulation</button>
+            </div>
+
+            <div class="output-panel">
+                <!-- Output panel structure remains the same -->
+                <h2>Simulation Results</h2>
+                <div id="results">
+                    <p>Results will appear here after simulation.</p>
+                </div>
+                <div id="histogramContainer">
+                     <p>Histogram will appear here.</p>
+                </div>
+            </div>
+        </div>
+
+        <details>
+            <!-- Documentation content structure remains the same -->
+            <summary>Documentation & How It Works</summary>
+            <div class="docs-content">
+                <h4>Purpose:</h4>
+                <p>This tool simulates the survivability of a unit undergoing a series of earthquakes. It calculates damage considering an initial defense check, dice rolls, "infinitely" exploding dice for damage/armor rolls, optional armor piercing, and optional critical hit mechanics.</p>
+
+                <h4>How to Use (Inputs):</h4>
+                <ul>
+                    <li><strong>Unit Max HP:</strong> The starting Hit Points of the unit.</li>
+                    <li><strong>Unit Base Defense <small>(no shield/weapon)</small>:</strong> The unit's defense value used against the attack roll, before shield or weapon bonuses.</li>
+                    <li><strong>Unit Base Armor:</strong> Fixed base armor for the unit before dice and modifications.</li>
+                    <li><strong>Earthquake Base Dmg:</strong> Fixed base damage for earthquakes before dice.</li>
+                    <li><strong>Number of Earthquakes:</strong> Max earthquakes per simulation run if the unit survives.</li>
+                    <li><strong>Simulation Runs:</strong> Number of times to run the full sequence for statistical analysis.</li>
+                    <li><strong>Simulate Defense Check (checkbox, default: ON):</strong> If checked, each earthquake first performs an attack roll (open-ended 3d6) against the Unit Base Defense. If the attack roll is not greater than the defense, the earthquake misses and deals no damage.</li>
+                    <li><strong>Armor Piercing (checkbox, default: ON):</strong> If checked and the attack hits, the unit's <strong>Unit Base Armor</strong> is reduced by 50% (rounded down) before critical hit checks or adding the armor dice roll.</li>
+                    <li><strong>Simulate Critical Hits (checkbox, default: ON):</strong> If checked and the attack hits, simulates armor-defeating hits. Assumes 0 fatigue. A critical hit occurs if the armor's dice roll (Protection DRN) is 2 or less. See "Mechanics Modeled" for details.</li>
+                </ul>
+
+                <h4>Mechanics Modeled (per Earthquake):</h4>
+                <ol>
+                    <li><strong>Defense Check (if enabled):</strong>
+                        <ul>
+                            <li>Attacker rolls "Open-ended 3d6": Roll 3d6. If all are 6s (sum=18), roll 3d6 again and add to total. Repeat on subsequent all 6s.</li>
+                            <li>If Attacker's Roll > Unit Base Defense, the attack HITS. Proceed to step 2.</li>
+                            <li>Otherwise, the attack MISSES. This earthquake deals 0 damage.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Dice Rolls for Damage/Armor (if HIT):</strong>
+                        <ul>
+                             <li>Earthquake Attack Roll: <code>evaluate2d6()</code>.</li>
+                             <li>Protection DRN (Armor Dice Roll): <code>evaluate2d6()</code>.</li>
+                        </ul>
+                         (<code>evaluate2d6()</code>: Rolls 2d6. If any initial 6, adds result of <code>rollTrulyExplodingD6() - 1</code>. <code>rollTrulyExplodingD6()</code>: Rolls d6. If 6, adds 6, re-rolls, adds (new roll - 1), continues on 6s.)
+                    </li>
+                    <li><strong>Armor Calculation (if HIT):</strong>
+                        <ol style="list-style-type: lower-alpha;">
+                            <li>Start with <code>protection_base = Unit_Base_Armor</code>.</li>
+                            <li><strong>If "Armor Piercing" is ON:</strong> <code>protection_base = floor(protection_base * 0.5)</code>.</li>
+                            <li>Let <code>armor_dice_roll</code> be the Protection DRN from step 2.</li>
+                            <li><strong>If "Simulate Critical Hits" is ON:</strong>
+                                <ul>
+                                    <li>A critical hit occurs if <code>Math.max(0, armor_dice_roll) <= 2</code>.</li>
+                                    <li>If critical hit: <code>protection_base = floor(protection_base * 0.75)</code>.</li>
+                                </ul>
+                            </li>
+                            <li><code>Final_Unit_Protection = protection_base + armor_dice_roll</code>.</li>
+                            <li><code>Final_Unit_Protection = Math.max(0, Final_Unit_Protection)</code>.</li>
+                        </ol>
+                        <p style="margin-top: 10px;"><strong>Example of Armor Calculation (assuming attack hit):</strong>
+                            Unit Base Armor = <code>10</code>. Both "Armor Piercing" and "Simulate Critical Hits" are ON.
+                            <ol style="list-style-type: decimal; padding-left: 20px; font-size: 0.95em;">
+                                <li>Initial <code>protection_base</code> = <code>10</code>.</li>
+                                <li>Armor Piercing ON: <code>protection_base</code> becomes <code>floor(10 * 0.5) = 5</code>.</li>
+                                <li>Suppose the Protection DRN (<code>armor_dice_roll</code>) is <code>1</code>.</li>
+                                <li>Critical Hit Check: <code>1 <= 2</code>, so a critical hit occurs.
+                                    <code>protection_base</code> (now <code>5</code>) becomes <code>floor(5 * 0.75) = 3</code>.</li>
+                                <li>Final Unit Protection = <code>protection_base</code> (<code>3</code>) + <code>armor_dice_roll</code> (<code>1</code>) = <code>4</code>.</li>
+                            </ol>
+                        </p>
+                    </li>
+                    <li><strong>Damage Calculation (if HIT):</strong>
+                        <ul>
+                            <li><code>Total_Attack = Earthquake_Base_Dmg + Earthquake_Attack_Roll (from step 2)</code></li>
+                            <li><code>Damage_Dealt = Total_Attack - Final_Unit_Protection (from step 3)</code></li>
+                            <li><code>Damage_Dealt = Math.max(0, Damage_Dealt)</code>.</li>
+                        </ul>
+                    </li>
+                    <li><strong>HP and Simulation Flow:</strong> Unit's HP is reduced by <code>Damage_Dealt</code>. If HP ≤ 0, unit dies. Earthquakes processed sequentially.</li>
+                </ol>
+
+                <h4>Output:</h4>
+                <ul>
+                    <li>Statistical summary (Total Trials, Deaths, Avg Final HP).</li>
+                    <li>Final HP Distribution Histogram (shows count and percentage for each HP value).</li>
+                </ul>
+
+                <h4>Limitations:</h4>
+                <ul>
+                    <li>Defense check uses "Unit Base Defense" and does not account for shield/weapon parry bonuses or other circumstantial modifiers.</li>
+                    <li>Critical hit mechanic assumes 0 fatigue and no immobilization for its specific check.</li>
+                    <li>The simulation is a statistical model of the described dice mechanics and does not encompass all game variables or environmental factors.</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        // JavaScript remains the same as the previous version
+        // ... (all JS functions from previous correct version) ...
+        function rollD6() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function rollOpenEnded3d6() {
+            let totalSum = 0;
+            let keepRolling = true;
+            let iterations = 0;
+            while (keepRolling && iterations < 10) {
+                let current3d6Roll = [rollD6(), rollD6(), rollD6()];
+                let currentSum = current3d6Roll.reduce((a, b) => a + b, 0);
+                totalSum += currentSum;
+                if (currentSum !== 18) {
+                    keepRolling = false;
+                }
+                iterations++;
+            }
+            return totalSum;
+        }
+
+
+        function rollTrulyExplodingD6() {
+            let total = 0;
+            let currentRoll = rollD6();
+            total += currentRoll;
+            let iterations = 0;
+            while (currentRoll === 6 && iterations < 20) {
+                currentRoll = rollD6();
+                total += (currentRoll - 1);
+                iterations++;
+            }
+            return total;
+        }
+
+        function evaluate2d6() {
+            const dice = [rollD6(), rollD6()];
+            let total = dice.reduce((sum, val) => sum + val, 0);
+            if (dice.includes(6)) {
+                total += (rollTrulyExplodingD6() - 1);
+            }
+            return total;
+        }
+
+        function simulateEarthquakesOnce(maxHp, unitDefense, quakeDamageBase, armorFixed, numEq, 
+                                         defenseCheckEnabled, armorPiercingEnabled, critsEnabled) {
+            let currentHp = maxHp;
+            let earthquakesProcessedThisRun = 0; 
+
+            for (let i = 0; i < numEq; i++) {
+                earthquakesProcessedThisRun += 1;
+                let eqDamage = 0;
+
+                let attackHits = true;
+                if (defenseCheckEnabled) {
+                    const attackerRoll = rollOpenEnded3d6();
+                    if (attackerRoll <= unitDefense) {
+                        attackHits = false;
+                    }
+                }
+
+                if (attackHits) {
+                    const damageDRN = evaluate2d6();
+                    const armorContributionDRN = evaluate2d6();
+                    let protectionBase = armorFixed;
+                    if (armorPiercingEnabled) {
+                        protectionBase = Math.floor(protectionBase * 0.5);
+                    }
+                    if (critsEnabled) {
+                        const clampedProtectionDRNForCritCheck = Math.max(0, armorContributionDRN);
+                        const isCriticalHit = (clampedProtectionDRNForCritCheck <= 2);
+                        if (isCriticalHit) {
+                            protectionBase = Math.floor(protectionBase * 0.75);
+                        }
+                    }
+                    let finalUnitProtection = protectionBase + armorContributionDRN;
+                    finalUnitProtection = Math.max(0, finalUnitProtection);
+                    let totalAttack = quakeDamageBase + damageDRN;
+                    eqDamage = totalAttack - finalUnitProtection;
+                    eqDamage = Math.max(0, eqDamage);
+                }
+                
+                currentHp -= eqDamage;
+                currentHp = Math.max(currentHp, 0);
+
+                if (currentHp <= 0) {
+                    break;
+                }
+            }
+            return { finalHp: currentHp, earthquakesProcessedThisRun: earthquakesProcessedThisRun };
+        }
+
+        function runSimulation(runs, maxHp, unitDefense, quakeDamageBase, armorFixed, numEq,
+                               defenseCheckEnabled, armorPiercingEnabled, critsEnabled) {
+            const finalHpList = [];
+            let deathCount = 0;
+            
+            for (let i = 0; i < runs; i++) {
+                const simResult = simulateEarthquakesOnce(maxHp, unitDefense, quakeDamageBase, armorFixed, numEq,
+                                                          defenseCheckEnabled, armorPiercingEnabled, critsEnabled);
+                finalHpList.push(simResult.finalHp);
+                if (simResult.finalHp <= 0) {
+                    deathCount += 1;
+                }
+            }
+            return { finalHpList, deathCount, totalRuns: runs };
+        }
+
+        function displayHtmlHistogram(finalHpList, maxHp, containerId, totalRuns) {
+            const histogramContainer = document.getElementById(containerId);
+            if (!histogramContainer) return;
+            histogramContainer.innerHTML = '<h3>Final HP Distribution:</h3>';
+
+            const counts = {};
+            for (let hp = 0; hp <= maxHp; hp++) {
+                counts[hp] = 0;
+            }
+            finalHpList.forEach(hp => {
+                const countedHp = Math.max(0, Math.min(hp, maxHp));
+                if (countedHp in counts) {
+                    counts[countedHp]++;
+                }
+            });
+
+            const values = Object.values(counts);
+            const maxCountAll = values.length > 0 ? Math.max(...values) : 0;
+            
+            const containerPadding = 20; 
+            const labelWidth = 50; 
+            const countAndPercentWidth = 130; 
+            const barMargin = 8;
+            
+            const maxBarContainerWidth = Math.max(50, histogramContainer.clientWidth - labelWidth - countAndPercentWidth - barMargin - containerPadding);
+
+
+            for (let hp = 0; hp <= maxHp; hp++) {
+                const count = counts[hp] || 0;
+                const percentage = totalRuns > 0 ? (count / totalRuns) * 100 : 0;
+                
+                const barWidth = maxCountAll > 0 ? (count / maxCountAll) * maxBarContainerWidth : 0;
+
+
+                const barRow = document.createElement('div');
+                barRow.className = 'histogram-bar-container';
+
+                const label = document.createElement('span');
+                label.className = 'histogram-label';
+                label.textContent = `HP ${hp}:`;
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'histogram-count';
+                
+                countSpan.innerHTML = `${count} <span class="percentage">| ${percentage.toFixed(1)}%</span>`; 
+
+                const barDiv = document.createElement('div');
+                barDiv.className = 'histogram-bar';
+                barDiv.style.width = `${Math.max(0, barWidth)}px`;
+                if (count === 0) {
+                    barDiv.classList.add('zero');
+                    if (barWidth < 2 && barWidth > 0) barDiv.style.width = `2px`;
+                    else if (barWidth === 0) barDiv.style.width = `2px`;
+                }
+                barRow.appendChild(label);
+                barRow.appendChild(countSpan);
+                barRow.appendChild(barDiv);
+                histogramContainer.appendChild(barRow);
+            }
+        }
+
+        function startSimulation() {
+            document.querySelectorAll('.input-panel input[type="number"]').forEach(input => input.style.borderColor = '');
+
+            const maxHpInput = document.getElementById('maxHp');
+            const unitDefenseInput = document.getElementById('unitDefense');
+            const quakeDamageBaseInput = document.getElementById('quakeDamageBase');
+            const armorFixedInput = document.getElementById('armorFixed');
+            const numEqInput = document.getElementById('numEq');
+            const runsInput = document.getElementById('runs');
+            
+            const defenseCheckEnabled = document.getElementById('simulateDefenseCheck').checked;
+            const armorPiercingEnabled = document.getElementById('armorPiercing').checked;
+            const critsEnabled = document.getElementById('simulateCrits').checked;
+
+            let isValid = true;
+            const inputsToValidate = [
+                { el: maxHpInput, min: 0, name: "Max HP" },
+                { el: unitDefenseInput, min: 0, name: "Unit Base Defense" },
+                { el: armorFixedInput, min: 0, name: "Base Armor" },
+                { el: quakeDamageBaseInput, min: 0, name: "Base Damage" },
+                { el: numEqInput, min: 1, name: "Number of Earthquakes" },
+                { el: runsInput, min: 1, name: "Simulation Runs" }
+            ];
+
+            let errorMessages = [];
+            inputsToValidate.forEach(item => {
+                const value = parseInt(item.el.value);
+                if (item.el.value === "" || isNaN(value) || value < item.min) {
+                    item.el.style.borderColor = 'red';
+                    isValid = false;
+                    errorMessages.push(`${item.name} must be a number >= ${item.min}.`);
+                }
+            });
+
+            const resultsDiv = document.getElementById('results');
+            if (!isValid) {
+                 resultsDiv.innerHTML = `<p style='color:red;'>Please correct the highlighted fields. Errors:<br>- ${errorMessages.join('<br>- ')}</p>`;
+                document.getElementById('histogramContainer').innerHTML = "";
+                return;
+            }
+
+            const maxHp = parseInt(maxHpInput.value);
+            const unitDefense = parseInt(unitDefenseInput.value);
+            const quakeDamageBase = parseInt(quakeDamageBaseInput.value);
+            const armorFixed = parseInt(armorFixedInput.value);
+            const numEq = parseInt(numEqInput.value);
+            const runs = parseInt(runsInput.value);
+
+            resultsDiv.innerHTML = "<p>Running simulation, please wait...</p>";
+            document.getElementById('histogramContainer').innerHTML = "<p>Histogram will appear after simulation.</p>";
+            document.querySelector('.action-button').disabled = true;
+
+            setTimeout(() => {
+                try {
+                    
+                    const { finalHpList, deathCount, totalRuns } = runSimulation(
+                        runs, maxHp, unitDefense, quakeDamageBase, armorFixed, numEq,
+                        defenseCheckEnabled, armorPiercingEnabled, critsEnabled
+                    );
+
+                    const avgFinalHp = finalHpList.length > 0 ? finalHpList.reduce((sum, val) => sum + val, 0) / runs : 0;
+                    
+                    const deathPercentage = runs > 0 ? (deathCount / runs) * 100 : 0;
+
+                    let outputText = `<pre>`;
+                    outputText += `Total Trials: ${runs}\n`;
+                    outputText += `Unit Died:    ${deathCount} (${deathPercentage.toFixed(2)}%)\n`;
+                    outputText += `Avg Final HP: ${avgFinalHp.toFixed(2)}`; 
+                    
+                    outputText += `</pre>`;
+                    resultsDiv.innerHTML = outputText;
+
+                    if (maxHp >= 0) {
+                        displayHtmlHistogram(finalHpList, maxHp, 'histogramContainer', totalRuns);
+                    } else {
+                        document.getElementById('histogramContainer').innerHTML = "<p>Histogram not generated due to invalid Max HP.</p>";
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML = `<p style="color:red;">An error occurred: ${error.message}</p><pre>${error.stack}</pre>`;
+                    console.error("Simulation error:", error);
+                } finally {
+                    document.querySelector('.action-button').disabled = false;
+                }
+            }, 10);
+        }
+    </script>
+</body>
+</html>
