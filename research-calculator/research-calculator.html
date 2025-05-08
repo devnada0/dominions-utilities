@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Turn Calculator - Final UI v3</title>
+    <style>
+        :root {
+            --bg-color: #f7f8fc;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --muted-text-color: #495057; 
+            --primary-color-action: #007bff;
+            --primary-hover-color-action: #0056b3;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0,0,0,0.07);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            --error-color: #dc3545;
+        }
+
+        body {
+            font-family: var(--font-family); line-height: 1.6; margin: 0;
+            background-color: var(--bg-color); color: var(--text-color);
+            display: flex; justify-content: center; padding: 20px;
+            min-height: 100vh; box-sizing: border-box;
+        }
+
+        .calculator-container {
+            background-color: var(--surface-color); padding: 30px; border-radius: 10px;
+            box-shadow: 0 6px 18px var(--shadow-color); width: 100%; max-width: 750px; 
+        }
+
+        header h1 {
+            color: var(--text-color); text-align: center; margin-top: 0;
+            margin-bottom: 30px; font-size: 1.75em; font-weight: 600;
+        }
+        
+        .input-panel h2 {
+            margin-top: 0; margin-bottom: 20px; font-size: 1.25em; color: var(--text-color);
+            border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-weight: 500;
+        }
+        
+        .input-group {
+            display: flex; align-items: center; margin-bottom: 15px; flex-wrap: wrap; 
+        }
+
+        .input-group label {
+            flex: 0 0 240px; margin-bottom: 0; padding-right: 10px;
+            box-sizing: border-box; line-height: 1.3;
+        }
+      
+        .input-group label .main-label-text {
+            font-weight: 500; font-size: 0.9em; color: var(--text-color); display: block; 
+        }
+        
+        /* Explicitly smaller font for ALL helper text under labels */
+        .input-group label small { 
+            display: block; 
+            font-size: 0.8em; /* Made smaller */
+            font-weight: normal;
+            line-height: 1.2; 
+            color: var(--muted-text-color); 
+            margin-top: 2px; /* Slightly more space from main label */
+        }
+
+        .input-group input[type="number"],
+        .input-group select {
+            flex: 1; min-width: 100px; padding: 8px 10px; box-sizing: border-box;
+            border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9em; 
+            transition: border-color 0.2s, box-shadow 0.2s; font-family: var(--font-family); 
+        }
+        
+        .input-group input[type="number"]:focus,
+        .input-group select:focus {
+            border-color: var(--primary-color-action); box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+            outline: none;
+        }
+        .input-group .error-message {
+            flex-basis: 100%; font-size: 0.8em; color: var(--error-color);
+            margin-left: 250px; margin-top: 3px;
+        }
+        .input-group input.error-input, 
+        .input-group select.error-input { 
+            border-color: var(--error-color) !important; 
+        }
+
+        /* Styles for RP Boosts Section */
+        .rp-boosts-section {
+            margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);
+        }
+        .rp-boosts-section h3 {
+            font-size: 1.1em; margin-bottom: 5px; color: var(--text-color); font-weight: 500;
+        }
+         .rp-boosts-header { 
+             display: flex; gap: 10px; margin-bottom: 3px; 
+             padding: 0 5px; font-size: 0.85em; color: var(--muted-text-color); font-weight: 500;
+         }
+         .rp-boosts-header .boost-turn-header { width: 80px; flex-shrink: 0; margin-left: 0; }
+         .rp-boosts-header .boost-amount-header { flex-grow: 1; min-width: 60px; max-width: 100px;}
+         .rp-boosts-header .boost-action-header { width: 70px; flex-shrink: 0;}
+
+        #boostsContainer { 
+             max-height: 180px; overflow-y: auto;
+             padding: 0; /* Remove padding */ margin-bottom: 5px; /* Tighter */
+        }
+        .boost-entry {
+            display: flex; gap: 10px; align-items: center;
+            margin-bottom: 0px; /* No margin */ 
+            padding: 1px 0px; /* Minimal padding, no horizontal */ 
+            border: none; /* No border */
+            background-color: transparent; /* No background */
+            min-height: 32px; 
+        }
+       
+        .boost-entry input[type="number"] {
+            flex-grow: 1; padding: 4px 8px; font-size: 0.9em;
+            min-width: 60px; max-width: 100px; margin: 0; 
+             height: 28px; box-sizing: border-box;
+        }
+        .boost-entry .boost-turn-input-wrapper { width: 80px; flex-shrink: 0; margin-left: 5px; /* Align with header padding */}
+        .boost-entry .boost-amount-input-wrapper { flex-grow: 1; max-width: 100px; }
+         .boost-entry .button-wrapper {
+            display: flex; gap: 5px; margin-left: auto; 
+            width: 70px; justify-content: flex-end; flex-shrink: 0; padding-right: 5px; /* Align with header padding */
+         }
+         .boost-entry button { 
+            padding: 4px 8px; font-size: 0.8em; border: none; 
+            border-radius: 4px; cursor: pointer; color: white; 
+            line-height: 1; height: 28px; 
+         }
+        .remove-boost-btn { background-color: #dc3545; } .remove-boost-btn:hover { background-color: #c82333; }
+        .duplicate-boost-btn { background-color: #17a2b8; } .duplicate-boost-btn:hover { background-color: #138496; }
+        #addBoostButton {
+            font-size: 0.9em; padding: 6px 12px; margin-top: 5px; 
+            margin-bottom: 15px;
+        }
+        /* End RP Boosts Section Styles */
+
+        .action-button {
+            display: block; width: 100%; padding: 12px 15px;
+            background-color: var(--primary-color-action); color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 1.05em; font-weight: 500;
+            transition: background-color 0.2s; margin-top: 25px;
+        }
+        .action-button:hover { background-color: var(--primary-hover-color-action); }
+        .action-button:disabled { background-color: #6c757d; cursor: not-allowed; }
+
+        #resultsDisplay {
+            margin-top: 25px; padding: 20px; background-color: #f8f9fa;
+            border: 1px solid var(--border-color); border-radius: 8px; text-align: center;
+        }
+        #resultsDisplay p { margin: 8px 0; font-size: 1.05em; }
+        #resultsDisplay .value { font-weight: 600; color: var(--primary-color-action); }
+
+        /* Documentation Styles */
+        details {
+            margin-top: 30px; border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 15px 20px; background-color: var(--surface-color);
+        }
+        summary {
+            font-weight: 500; cursor: pointer; margin-bottom: 10px; color: var(--text-color);
+            font-size: 1.05em; list-style: none; position: relative; padding-left: 25px;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::before {
+            content: '▶'; position: absolute; left: 0; font-size: 0.9em;
+            transition: transform 0.2s ease-in-out; color: var(--muted-text-color);
+        }
+        details[open] summary::before { transform: rotate(90deg); }
+        summary:hover { color: var(--primary-color-action); }
+        .docs-content {
+            font-size: 0.9em; line-height: 1.6; padding-top: 15px;
+            border-top: 1px solid var(--border-color); color: var(--muted-text-color);
+        }
+        .docs-content h4 {
+            margin-top: 15px; margin-bottom: 8px; border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px; color: var(--text-color); font-size: 1em; font-weight: 500;
+        }
+        .docs-content h4:first-of-type { margin-top: 0; }
+        .docs-content p, .docs-content ul, .docs-content table { margin-bottom: 10px; }
+        .docs-content ul, .docs-content ol { padding-left: 25px; }
+        .docs-content li { margin-bottom: 5px; }
+        .docs-content code {
+            background-color: #e9ecef; padding: 2px 6px; border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 0.9em; color: #d6336c;
+        }
+        .docs-content table {
+            width: auto; border-collapse: collapse; margin-top: 10px; font-size: 0.95em;
+        }
+        .docs-content th, .docs-content td {
+            border: 1px solid var(--border-color); padding: 6px 10px; text-align: left;
+        }
+        .docs-content th { background-color: #f8f9fa; font-weight: 500; }
+
+        @media (max-width: 680px) { 
+            .calculator-container { padding: 20px; }
+            header h1 { font-size: 1.6em; margin-bottom: 20px; }
+            .input-group label {
+                 flex: 1 1 100%; margin-bottom: 6px; padding-right: 0; text-align: left;
+            }
+             .input-group input[type="number"], .input-group select { min-width: 100%; }
+             .input-group .error-message { margin-left: 0; }
+             .rp-boosts-header { display: none; } 
+             .boost-entry { flex-direction: column; align-items: stretch;}
+             .boost-entry .input-wrapper { width: 100%; margin-bottom: 5px;}
+             .boost-entry .boost-turn-input-wrapper input::placeholder { content: "Turn"; }
+             .boost-entry .boost-amount-input-wrapper input::placeholder { content: "+RP/Turn"; }
+             .boost-entry .button-wrapper { justify-content: flex-end; width: auto; } 
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <header>
+            <h1>Research Turn Calculator</h1>
+        </header>
+
+        <div class="input-panel">
+            <h2>Parameters</h2>
+            <div class="input-group">
+                <label for="researchDifficulty"><span class="main-label-text">Research Difficulty</span></label>
+                <select id="researchDifficulty">
+                    <option value="standard" selected>Standard</option>
+                    <option value="very_easy">Very Easy</option>
+                    <option value="easy">Easy</option>
+                    <option value="difficult">Difficult</option>
+                    <option value="very_difficult">Very Difficult</option>
+                </select>
+            </div>
+            <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
+            <div class="input-group">
+                <label for="currentLevel"><span class="main-label-text">Current Research Level</span></label>
+                <select id="currentLevel"> <!-- Populated by JS --> </select>
+            </div>
+            <div class="input-group">
+                <label for="rpLeft">
+                    <span class="main-label-text">RP Left to Complete Current Level</span>
+                    <small class="rp-display" id="rpLeftMaxLabel">(RP for level: ...)</small> 
+                </label>
+                <input type="number" id="rpLeft" value="0" min="0">
+                <span class="error-message" id="rpLeftError"></span>
+            </div>
+            <div class="input-group">
+                <label for="desiredLevel">
+                    <span class="main-label-text">Desired Research Level</span>
+                    <small class="rp-display" id="desiredLevelRpDisplay">(Remaining RP: ...)</small> 
+                </label>
+                <select id="desiredLevel"> <!-- Populated by JS --> </select>
+                <span class="error-message" id="desiredLevelError"></span>
+            </div>
+            <div class="input-group">
+                <label for="currentRPT"><span class="main-label-text">Current Research per Turn</span></label>
+                <input type="number" id="currentRPT" value="100" min="0" step="any"> 
+                 <span class="error-message" id="currentRPTError"></span>
+            </div>
+            
+            <!-- Section for Future RP Boosts -->
+            <div class="rp-boosts-section">
+                <h3>Future RP Boosts <small>(Optional)</small></h3>
+                <div class="rp-boosts-header">
+                    <span class="boost-turn-header">Turn</span>
+                    <span class="boost-amount-header">+RP/Turn</span>
+                    <span class="boost-action-header"> </span>
+                </div>
+                <div id="boostsContainer">
+                    <!-- Boost entries will be added here by JS -->
+                </div>
+                <button type="button" id="addBoostButton" class="action-button" style="width: auto; margin-top: 5px; background-color: #6c757d;">Add RP Boost</button>
+            </div>
+            <!-- End Section for Future RP Boosts -->
+
+            <button class="action-button" id="calculateButton" style="margin-top: 30px;">Calculate Turns</button>
+        </div>
+
+        <div id="resultsDisplay" style="display: none;"> <!-- Results populated here --> </div>
+
+        <details>
+             <summary>Documentation & How It Works</summary>
+            <div class="docs-content">
+                 <!-- Documentation Content -->
+                 <h4>Purpose:</h4>
+                <p>This calculator estimates the number of turns required to reach a desired research level in Dominions 6, considering your current progress, research points (RP) per turn, the selected game research difficulty, and scheduled future boosts to your RP generation.</p>
+
+                <h4>Inputs:</h4>
+                <ul>
+                    <li><strong>Research Difficulty:</strong> The research difficulty setting for the game. This affects RP costs.</li>
+                    <li><strong>Current Research Level:</strong> Your nation's current achieved research level (0-9).</li>
+                    <li><strong>RP Left to Complete Current Level:</strong> RP needed to finish your current level. The label below indicates the total RP required for this level-up based on difficulty.</li>
+                    <li><strong>Desired Research Level:</strong> The target research level (1-9). Must be > current level. The dropdown shows the RP cost for that specific level-up (e.g., "6 (1,300 RP)"), and the label below dynamically shows the estimated *remaining* RP needed to reach this level based on current inputs.</li>
+                    <li><strong>Current Research per Turn:</strong> Total RP your nation currently generates each turn. Can be 0.</li>
+                    <li><strong>Future RP Boosts (Optional):</strong>
+                        <ul>
+                            <li>Click "Add RP Boost" to schedule increases in your RP/turn.</li>
+                            <li><strong>Turn:</strong> The number of turns from the start of this calculation when the boost takes effect (e.g., 10 means the boost applies starting on turn 10). Defaults to 1.</li>
+                            <li><strong>+RP/Turn:</strong> The amount of *new sustained* RP/turn this event adds to your *then-current* total research. Defaults to 10.</li>
+                            <li>Use the 'D' button to duplicate a boost row, 'X' to remove it.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4>Research Costs:</h4>
+                <p>The table below dynamically updates to reflect the RP costs for the chosen difficulty setting:</p>
+                <table>
+                    <thead>
+                        <tr><th>To Reach Level</th><th>RP from Previous Level</th><th>Cumulative RP from Level 0</th></tr>
+                    </thead>
+                    <tbody id="researchCostsTableBody"> <!-- Populated by JS --> </tbody>
+                </table>
+
+                <h4>Calculation:</h4>
+                <ol>
+                    <li><strong>Remaining RP Needed (S):</strong> Calculated based on current level, RP left in current level, desired level, and selected difficulty. <code>S = Cumulative_RP_for_Desired_Level - (Cumulative_RP_for_Current_Level + RP_Invested_in_Current_Level)</code>. This value is displayed below the "Desired Research Level" input.</li>
+                    <li><strong>Turns Calculation (T):</strong>
+                        <ul>
+                            <li>The calculator simulates turn by turn, starting with "Current Research per Turn".</li>
+                            <li>On each turn, scheduled "Future RP Boosts" are applied, increasing the effective RP/turn rate.</li>
+                            <li>The effective RP/turn is added to an accumulated total until it meets or exceeds the "Remaining RP Needed (S)".</li>
+                            <li>Handles cases where RP/turn starts at or drops to zero.</li>
+                        </ul>
+                    </li>
+                </ol>
+                 <p>The result is the estimated number of full turns to accumulate at least <code>S</code> research points.</p>
+
+                <h4>Output:</h4>
+                <ul>
+                    <li><strong>Remaining RP to Reach Goal:</strong> The value <code>S</code> (this is the same value shown dynamically under the "Desired Research Level" input).</li>
+                    <li><strong>Estimated Turns to Reach Goal:</strong> The calculated value <code>T</code>.</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        // --- Research Data ---
+        const researchData = {
+            standard: { perLevel: [0, 50, 100, 200, 400, 700, 1300, 2400, 4400, 8100], cumulative: [] },
+            very_easy: { perLevel: [0, 20, 25, 50, 100, 200, 400, 700, 1300, 2400], cumulative: [] },
+            easy: { perLevel: [0, 25, 50, 100, 200, 400, 700, 1300, 2400, 4400], cumulative: [] },
+            difficult: { perLevel: [0, 100, 200, 400, 700, 1300, 2400, 4400, 8100, 14900], cumulative: [] },
+            very_difficult: { perLevel: [0, 200, 400, 700, 1300, 2400, 4400, 8100, 14900, 14900], cumulative: [] }
+        };
+        for (const key in researchData) {
+            researchData[key].cumulative = [0];
+            for (let i = 1; i < researchData[key].perLevel.length; i++) {
+                researchData[key].cumulative.push(researchData[key].cumulative[i-1] + researchData[key].perLevel[i]);
+            }
+        }
+        let currentRpRequiredPerLevel = []; 
+        let currentCumulativeRpToReachLevel = []; 
+
+        // --- DOM Elements ---
+        const researchDifficultySelect = document.getElementById('researchDifficulty');
+        const currentLevelSelect = document.getElementById('currentLevel');
+        const rpLeftInput = document.getElementById('rpLeft');
+        const rpLeftMaxLabel = document.getElementById('rpLeftMaxLabel');
+        const rpLeftError = document.getElementById('rpLeftError');
+        const desiredLevelSelect = document.getElementById('desiredLevel');
+        const desiredLevelRpDisplay = document.getElementById('desiredLevelRpDisplay'); 
+        const desiredLevelError = document.getElementById('desiredLevelError');
+        const currentRPTInput = document.getElementById('currentRPT');
+        const currentRPTError = document.getElementById('currentRPTError');
+        const calculateButton = document.getElementById('calculateButton');
+        const resultsDisplay = document.getElementById('resultsDisplay');
+        const researchCostsTableBody = document.getElementById('researchCostsTableBody');
+        const boostsContainer = document.getElementById('boostsContainer');
+        const addBoostButton = document.getElementById('addBoostButton');
+
+        // --- Populate Selects (Base) ---
+        function populateLevelSelects() { 
+            currentLevelSelect.innerHTML = ''; desiredLevelSelect.innerHTML = '';
+            const researchLevels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; 
+            researchLevels.forEach(level => {
+                const optionCurrent = document.createElement('option');
+                optionCurrent.value = level; optionCurrent.textContent = level; 
+                currentLevelSelect.appendChild(optionCurrent);
+                if (level > 0) { 
+                    const optionDesired = document.createElement('option');
+                    optionDesired.value = level; optionDesired.textContent = level; 
+                    desiredLevelSelect.appendChild(optionDesired);
+                }
+            });
+            currentLevelSelect.value = 0; 
+            desiredLevelSelect.value = 1; 
+        }
+        
+        // --- Update Functions ---
+        function updateDesiredLevelOptionsText() {
+            const selectedValue = desiredLevelSelect.value; 
+            if(!desiredLevelSelect || desiredLevelSelect.options.length === 0 || !currentRpRequiredPerLevel) return; 
+            
+            for (let i = 0; i < desiredLevelSelect.options.length; i++) {
+                 const option = desiredLevelSelect.options[i];
+                 const level = parseInt(option.value);
+                 if(currentRpRequiredPerLevel.length > level){ 
+                     const rpCost = currentRpRequiredPerLevel[level] || 0; 
+                     option.textContent = `${level} (${rpCost.toLocaleString()} RP)`;
+                 } else {
+                     option.textContent = level; 
+                 }
+            }
+             if (Array.from(desiredLevelSelect.options).some(opt => opt.value === selectedValue)) {
+                 desiredLevelSelect.value = selectedValue;
+             } else if (desiredLevelSelect.options.length > 0) {
+                 desiredLevelSelect.value = desiredLevelSelect.options[0].value; 
+             } 
+        }
+
+        function calculateRemainingRpNeeded() {
+             const currentLevel = parseInt(currentLevelSelect.value);
+             const desiredLevel = parseInt(desiredLevelSelect.value);
+             const rpLeftValue = parseFloat(rpLeftInput.value); 
+
+             if (!currentRpRequiredPerLevel || currentRpRequiredPerLevel.length <= currentLevel + 1 || 
+                 !currentCumulativeRpToReachLevel || currentCumulativeRpToReachLevel.length <= desiredLevel) {
+                 return null; 
+             }
+
+             if (isNaN(rpLeftValue) || desiredLevel <= currentLevel || currentLevel < 0) return null; 
+             
+             const rpCostToCompleteCurrentLevel = currentRpRequiredPerLevel[currentLevel + 1] || 0; 
+             if (rpLeftValue < 0 || rpLeftValue > rpCostToCompleteCurrentLevel) return null; 
+
+             const totalRpSoFar = currentCumulativeRpToReachLevel[currentLevel] + (rpCostToCompleteCurrentLevel - rpLeftValue);
+             const totalRpRequiredForDesired = currentCumulativeRpToReachLevel[desiredLevel];
+             let S = totalRpRequiredForDesired - totalRpSoFar;
+
+             return Math.max(0, S); 
+        }
+
+        function updateDesiredLevelRpDisplay() {
+            const remainingRP = calculateRemainingRpNeeded();
+            if (remainingRP !== null) {
+                desiredLevelRpDisplay.textContent = `(Remaining RP: ${remainingRP.toLocaleString(undefined, {maximumFractionDigits: 0})})`; 
+            } else {
+                 desiredLevelRpDisplay.textContent = `(Remaining RP: - )`; 
+            }
+        }
+
+        function updateActiveResearchData() { 
+            const difficulty = researchDifficultySelect.value;
+            const data = researchData[difficulty] || researchData.standard; 
+            currentRpRequiredPerLevel = data.perLevel;
+            currentCumulativeRpToReachLevel = data.cumulative;
+            
+            populateResearchCostsTable(); 
+            updateDesiredLevelOptionsText(); 
+            updateRpLeftMax(); 
+            updateDesiredLevelRpDisplay(); 
+        }
+
+        function populateResearchCostsTable() { 
+            researchCostsTableBody.innerHTML = '';
+            if (!currentRpRequiredPerLevel || !currentCumulativeRpToReachLevel) return; 
+            for (let i = 1; i <= 9; i++) { 
+                const row = researchCostsTableBody.insertRow();
+                row.insertCell().textContent = i; 
+                row.insertCell().textContent = (currentRpRequiredPerLevel[i] || 0).toLocaleString();
+                row.insertCell().textContent = (currentCumulativeRpToReachLevel[i] || 0).toLocaleString();
+            }
+        }
+
+        // --- Event Listeners ---
+        researchDifficultySelect.addEventListener('change', updateActiveResearchData);
+        currentLevelSelect.addEventListener('change', () => { updateRpLeftMax(); updateDesiredLevelRpDisplay(); }); 
+        rpLeftInput.addEventListener('input', () => { validateRpLeft(); updateDesiredLevelRpDisplay(); });
+        desiredLevelSelect.addEventListener('change', () => { 
+             desiredLevelError.textContent = ""; desiredLevelSelect.classList.remove('error-input');
+             updateDesiredLevelRpDisplay(); 
+        }); 
+        addBoostButton.addEventListener('click', () => addBoostEntry(1, 10)); 
+        calculateButton.addEventListener('click', handleCalculation);
+        currentRPTInput.addEventListener('input', () => validateInput(currentRPTInput, currentRPTError, 0, undefined, "Current RP/T")); 
+        
+        // --- RP Boost UI ---
+        let boostIdCounter = 0;
+        function addBoostEntry(initialTurn = 1, initialAmount = 10) { 
+             boostIdCounter++;
+             const boostDiv = document.createElement('div');
+             boostDiv.className = 'boost-entry'; boostDiv.id = `boost-${boostIdCounter}`;
+             boostDiv.innerHTML = `
+                 <div class="boost-turn-input-wrapper">
+                     <input type="number" id="boostTurn-${boostIdCounter}" class="boost-turn" min="1" value="${initialTurn}" placeholder="Turn" title="Turn (from now)">
+                 </div>
+                 <div class="boost-amount-input-wrapper">
+                     <input type="number" id="boostAmount-${boostIdCounter}" class="boost-amount" min="0" value="${initialAmount}" step="any" placeholder="+RP/Turn" title="Additional RP/Turn">
+                 </div>
+                 <div class="button-wrapper"> 
+                     <button type="button" class="duplicate-boost-btn" title="Duplicate Row"> D </button>
+                     <button type="button" class="remove-boost-btn" title="Remove Row"> X </button>
+                 </div>`;
+             boostsContainer.appendChild(boostDiv);
+             const removeBtn = boostDiv.querySelector('.remove-boost-btn');
+             removeBtn.addEventListener('click', function() { boostDiv.remove(); });
+             const duplicateBtn = boostDiv.querySelector('.duplicate-boost-btn');
+             duplicateBtn.addEventListener('click', function() {
+                  const turnInput = boostDiv.querySelector('.boost-turn'); const amountInput = boostDiv.querySelector('.boost-amount');
+                  const turnVal = parseInt(turnInput.value) || 1; const amountVal = parseFloat(amountInput.value) || 0;
+                  addBoostEntry(turnVal, amountVal); 
+                  const newEntry = boostsContainer.lastElementChild; if(newEntry) newEntry.querySelector('.boost-turn').focus();
+             });
+         }
+       
+        // --- Helper Functions ---
+        function updateRpLeftMax() { 
+             const currentLevel = parseInt(currentLevelSelect.value);
+             if (!currentRpRequiredPerLevel || currentRpRequiredPerLevel.length <= currentLevel + 1) return; 
+             const maxRp = currentRpRequiredPerLevel[currentLevel + 1] || 0; 
+             rpLeftMaxLabel.textContent = `(RP for level: ${maxRp.toLocaleString()})`; 
+             rpLeftInput.max = maxRp; 
+             rpLeftInput.placeholder = `0 to ${maxRp.toLocaleString()}`;
+             if (parseFloat(rpLeftInput.value) > maxRp && rpLeftInput.value !== "") { rpLeftInput.value = maxRp; }
+             validateRpLeft(); 
+         }
+        
+        function validateInput(inputElement, errorElement, min, max, message, isRequired = true) {
+             const valueStr = inputElement.value.trim();
+             errorElement.textContent = ""; inputElement.classList.remove('error-input');
+             if (isRequired && valueStr === "") { errorElement.textContent = "This field is required."; inputElement.classList.add('error-input'); return false; }
+             if (!isRequired && valueStr === "") return true; 
+             const value = parseFloat(valueStr); let isValid = true;
+             if (isNaN(value)) { errorElement.textContent = "Must be a valid number."; isValid = false; } 
+             else if (value < min) { errorElement.textContent = `${message} must be >= ${min}.`; isValid = false; } 
+             const maxAttr = inputElement.hasAttribute('max') ? parseFloat(inputElement.max) : max;
+             if (maxAttr !== undefined && value > maxAttr) { 
+                 errorElement.textContent = `${message} must be <= ${maxAttr.toLocaleString()}.`; 
+                 isValid = false; 
+             }
+             if (!isValid) inputElement.classList.add('error-input'); return isValid;
+         }
+
+        function validateRpLeft() { 
+             const currentLevel = parseInt(currentLevelSelect.value);
+              if (!currentRpRequiredPerLevel || currentRpRequiredPerLevel.length <= currentLevel + 1) return false; 
+             const maxRp = currentRpRequiredPerLevel[currentLevel + 1] || 0;
+             return validateInput(rpLeftInput, rpLeftError, 0, maxRp, "RP Left");
+         }
+
+        function handleCalculation() {
+             // --- Validation Phase --- 
+             resultsDisplay.style.display = 'none'; resultsDisplay.innerHTML = '';
+             let allValid = true;
+             if (!validateRpLeft()) allValid = false; 
+             if (!validateInput(currentRPTInput, currentRPTError, 0, undefined, "Current RP/T")) allValid = false; 
+
+             const currentLevel = parseInt(currentLevelSelect.value);
+             const desiredLevel = parseInt(desiredLevelSelect.value);
+             desiredLevelError.textContent = ""; desiredLevelSelect.classList.remove('error-input');
+             if (desiredLevel <= currentLevel) {
+                 desiredLevelError.textContent = "Desired level must be > current level.";
+                 desiredLevelSelect.classList.add('error-input'); allValid = false;
+             }
+
+             const boostEntries = [];
+             document.querySelectorAll('.boost-entry').forEach(entryDiv => {
+                  const turnInput = entryDiv.querySelector('.boost-turn'); const amountInput = entryDiv.querySelector('.boost-amount');
+                  turnInput.classList.remove('error-input'); amountInput.classList.remove('error-input');
+                  const turn = parseInt(turnInput.value); const amount = parseFloat(amountInput.value);
+                  let boostValid = true;
+                  if (isNaN(turn) || turn < 1) { turnInput.classList.add('error-input'); allValid = false; boostValid = false; }
+                  if (isNaN(amount) || amount < 0) { amountInput.classList.add('error-input'); allValid = false; boostValid = false; }
+                  if (boostValid) { boostEntries.push({ turn: turn, amount: amount }); }
+             });
+             boostEntries.sort((a, b) => a.turn - b.turn); 
+             
+             if (!allValid) return;
+
+             // --- Calculation Phase ---
+             const initialRPT = parseFloat(currentRPTInput.value); 
+             const S = calculateRemainingRpNeeded(); 
+
+             if (S === null) { 
+                  resultsDisplay.innerHTML = `<p style="color:var(--error-color);">Invalid input state prevents calculation. Please check fields.</p>`;
+                  resultsDisplay.style.display = 'block'; return;
+             } else if (S <= 0.00001) {
+                 resultsDisplay.innerHTML = `<p>You have already reached or surpassed the desired research level.</p>`;
+                 resultsDisplay.style.display = 'block'; return;
+             }
+             
+             // Iterative calculation 
+             let turnsTaken = 0; let accumulatedRp = 0; let boostIndex = 0;
+             let effectiveRPT = initialRPT; 
+             const MAX_TURNS = 10000; 
+             const totalFutureBoost = boostEntries.reduce((sum, boost) => sum + boost.amount, 0);
+             if (effectiveRPT <= 0 && totalFutureBoost <= 0) {
+                  resultsDisplay.innerHTML = `<p style="color:var(--error-color);">Current RP/Turn is zero and no future boosts add RP. Cannot reach target.</p>`;
+                  resultsDisplay.style.display = 'block'; return;
+             }
+             while (accumulatedRp < S && turnsTaken < MAX_TURNS) {
+                  turnsTaken++;
+                  while(boostIndex < boostEntries.length && boostEntries[boostIndex].turn === turnsTaken) {
+                      effectiveRPT += boostEntries[boostIndex].amount; boostIndex++;
+                  }
+                  if (effectiveRPT <= 0 && accumulatedRp < S) { turnsTaken = MAX_TURNS; break; } 
+                  accumulatedRp += effectiveRPT;
+             }
+             
+             if (turnsTaken >= MAX_TURNS && accumulatedRp < S) {
+                  resultsDisplay.innerHTML = `<p style="color:var(--error-color);">Calculation exceeded ${MAX_TURNS} turns, or RP/Turn became non-positive. Target might be unachievable or too far away.</p>`;
+                  resultsDisplay.style.display = 'block'; return;
+             }
+
+             resultsDisplay.innerHTML = `
+                 <p>Remaining RP to reach Level ${desiredLevel}: <span class="value">${S.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></p> 
+                 <p>Estimated turns to reach Level ${desiredLevel}: <span class="value">${turnsTaken}</span></p>`;
+             resultsDisplay.style.display = 'block';
+         }
+
+        // --- Initial Page Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateLevelSelects();       
+            updateActiveResearchData(); 
+        });
+
+    </script>
+</body>
+</html>
