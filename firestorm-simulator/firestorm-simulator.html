@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Storm Simulator - Dominions 6 (v2.9.7 - Refined FR Logic)</title>
+    <style>
+        /* CSS is identical to v2.9.3 - no changes needed here */
+        :root {
+            --bg-color: #f4f6f9; 
+            --surface-color: #ffffff;
+            --text-color: #343a40; 
+            --muted-text-color: #6c757d;
+            --primary-color-action: #dc3545; /* Red theme for fire */
+            --primary-hover-color-action: #c82333;
+            --border-color: #e9ecef;     
+            --shadow-color: rgba(0,0,0,0.06);
+            --font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            --graph-line1-color: #e67e22; 
+            --graph-line2-color: #c0392b; 
+            --graph-internal-grid-color: #ced4da; 
+        }
+        body { font-family: var(--font-family); line-height: 1.6; margin: 0; background-color: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; padding: 20px; min-height: 100vh; box-sizing: border-box; }
+        .simulator-container { background-color: var(--surface-color); padding: 30px; border-radius: 12px; box-shadow: 0 8px 25px var(--shadow-color); width: 100%; max-width: 980px; }
+        header h1 { color: var(--text-color); text-align: center; margin-top: 0; margin-bottom: 30px; font-size: 1.8em; font-weight: 600; letter-spacing: -0.5px; }
+        .main-content { display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 30px; }
+        .input-panel, .output-panel { flex: 1; min-width: 340px; }
+        .input-panel { padding: 25px; background-color: #fcfdff; border: 1px solid var(--border-color); border-radius: 8px; }
+        .output-panel h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.3em; color: var(--text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; font-weight: 500; }
+        .input-group { display: flex; align-items: center; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-group label { flex: 0 0 190px; margin-bottom: 0; font-weight: 500; font-size: 0.9em; color: var(--muted-text-color); padding-right: 10px; box-sizing: border-box; line-height: 1.3; }
+        .input-group label .main-label-text { color: var(--text-color); display: block; font-weight: 500; font-size: 0.95em;}
+        .input-group label small { display: block; font-size: 0.8em; font-weight: normal; line-height: 1.2; color: #88929b; margin-top: 2px; }
+        .checkbox-group { margin-bottom: 20px; padding-top: 12px; border-top: 1px dashed var(--border-color); }
+        .checkbox-group .input-group { display: block; margin-bottom: 8px; }
+        .input-group input[type="number"], .input-group select { flex: 1; min-width: 80px; padding: 9px 12px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.95em; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-group input[type="checkbox"] + label { display: inline-flex; align-items:center; margin-left: 8px; font-weight: normal; font-size: 0.95em; color: var(--text-color); vertical-align: middle; cursor: pointer; }
+        .input-group input[type="checkbox"] + label small { font-size: 0.85em; color: var(--muted-text-color); display: inline; margin-top: 0; margin-left: 5px; }
+        .input-group input[type="checkbox"] { vertical-align: middle; width: 17px; height: 17px; accent-color: var(--primary-color-action); }
+        .input-group input[type="number"]:focus, .input-group select:focus { border-color: var(--primary-color-action); box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25); outline: none; }
+        .action-button { display: block; width: 100%; padding: 12px 15px; background-color: var(--primary-color-action); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: 500; transition: background-color 0.2s, transform 0.1s; margin-top: 25px; }
+        .action-button:hover { background-color: var(--primary-hover-color-action); }
+        .action-button:active { transform: translateY(1px); }
+        .action-button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+        .results-summary { padding: 15px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid var(--border-color); }
+        .stat-group { margin-bottom: 15px; }
+        .stat-group:last-child { margin-bottom: 0; }
+        .stat-group h4 { font-size: 0.9em; color: var(--primary-color-action); margin-top:0; margin-bottom:8px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px;}
+        .stat-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.95em; margin-bottom: 2px; }
+        .stat-label { color: var(--muted-text-color); flex-basis: 70%; text-align: left; padding-right: 10px; }
+        .stat-value { color: var(--text-color); font-weight: 500; flex-basis: 30%; text-align: right; }
+        #survivalGraphContainer { padding: 20px; background-color: #fdfdff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); }
+        #survivalGraphContainer h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.2em; color: var(--text-color); font-weight: 500; text-align: center; }
+        .graph-svg { display: block; margin: 0 auto; max-width: 100%; }
+        .graph-axis.boundary-line, .graph-axis.tick-line { fill: none; stroke: var(--muted-text-color); stroke-width: 1px; shape-rendering: crispEdges; }
+        .graph-grid-line { fill: none; stroke: var(--graph-internal-grid-color); stroke-width: 0.5px; shape-rendering: crispEdges; }
+        .graph-axis text { font-size: 10px; fill: var(--muted-text-color); }
+        .graph-line { fill: none; stroke-width: 2; }
+        .graph-line.line1 { stroke: var(--graph-line1-color); }
+        .graph-line.line2 { stroke: var(--graph-line2-color); }
+        .graph-legend { font-size: 0.9em; margin-top: 15px; text-align: center;}
+        .legend-item { display: inline-block; margin-right: 20px; }
+        .legend-item:last-child { margin-right: 0; }
+        .legend-color-box { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+        details { margin-top: 30px; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px 20px; background-color: var(--surface-color); }
+        summary { font-weight: 500; cursor: pointer; margin-bottom: 10px; color: var(--text-color); font-size: 1.05em; list-style: none; position: relative; padding-left: 25px; }
+        summary::-webkit-details-marker { display: none; } 
+        summary::before { content: '▶'; position: absolute; left: 0; font-size: 0.9em; transition: transform 0.2s ease-in-out; color: var(--muted-text-color); }
+        details[open] summary::before { transform: rotate(90deg); }
+        summary:hover { color: var(--primary-color-action); }
+        .docs-content { font-size: 0.9em; line-height: 1.6; padding-top: 15px; border-top: 1px solid var(--border-color); color: var(--muted-text-color); }
+        .docs-content h4 { margin-top: 15px; margin-bottom: 8px; border-bottom: 1px solid #e9ecef; padding-bottom: 5px; color: var(--text-color); font-size: 1em; font-weight: 500; }
+        .docs-content h4:first-of-type { margin-top: 0; }
+        .docs-content p, .docs-content ul, .docs-content ol { margin-bottom: 10px; }
+        .docs-content ul, .docs-content ol { padding-left: 25px; }
+        .docs-content li { margin-bottom: 5px; }
+        .docs-content code { background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 0.9em; color: #c82333; }
+        @media (max-width: 820px) { .main-content { flex-direction: column; margin-bottom: 20px; } .input-panel, .output-panel { min-width: 100%; } .simulator-container { padding: 20px; } header h1 { font-size: 1.6em; margin-bottom: 20px; } .input-group label:not(input[type="checkbox"] + label) { flex: 1 1 100%; margin-bottom: 6px; padding-right: 0; } .input-group input[type="number"] { min-width: 100%; } .stat-item {flex-direction: column; align-items: flex-start; margin-bottom: 8px;} .stat-label {flex-basis: auto; margin-bottom: 2px;} .stat-value {flex-basis: auto; text-align: left;} }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <header><h1>Fire Storm Simulator</h1></header>
+        <div class="main-content">
+            <div class="input-panel">
+                <h2>Unit & Scenario Configuration</h2>
+                <div class="input-group">
+                    <label for="unitMaxHp"><span class="main-label-text">Unit Max HP</span></label>
+                    <input type="number" id="unitMaxHp" value="10" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="unitArmor"><span class="main-label-text">Unit Armor (Protection)</span></label>
+                    <input type="number" id="unitArmor" value="0" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="unitFR"><span class="main-label-text">Unit Fire Resistance (FR)</span></label>
+                    <input type="number" id="unitFR" value="0" min="-5">
+                </div>
+                <div class="input-group">
+                    <label for="unitSize"><span class="main-label-text">Unit Size</span></label>
+                    <input type="number" id="unitSize" value="3" min="1" max="10">
+                </div>
+                 <div class="input-group">
+                    <label for="hpRegenPerTurn"><span class="main-label-text">HP Gained Per Turn</span><small>(Applied end of turn)</small></label>
+                    <input type="number" id="hpRegenPerTurn" value="0" min="0" step="any">
+                </div>
+                <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
+                <div class="input-group">
+                    <label for="provinceTemperature"><span class="main-label-text">Province Temperature</span><small>(Cold -5 to Heat +5)</small></label>
+                    <input type="number" id="provinceTemperature" value="0" min="-5" max="5" step="1">
+                </div>
+                <div class="checkbox-group">
+                    <div class="input-group">
+                        <input type="checkbox" id="isUnitEthereal">
+                        <label for="isUnitEthereal">Unit is Ethereal? <small>(Cannot burn)</small></label>
+                    </div>
+                     <div class="input-group">
+                        <input type="checkbox" id="isRaining">
+                        <label for="isRaining">Is it Raining? <small>(Helps extinguish fire)</small></label>
+                    </div>
+                </div>
+                <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
+                <div class="input-group">
+                    <label for="maxTurnsToSimulate"><span class="main-label-text">Max Turns to Simulate</span><small>(Per run, if unit survives)</small></label>
+                    <input type="number" id="maxTurnsToSimulate" value="100" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="simulationRuns"><span class="main-label-text">Simulation Runs</span></label>
+                    <input type="number" id="simulationRuns" value="10000" min="1">
+                </div>
+                <button class="action-button" onclick="startFireStormSimulation()">Run Simulation</button>
+            </div>
+            <div class="output-panel"> 
+                <h2>Simulation Results</h2>
+                <div id="results" class="results-summary"><p>Results will appear here after simulation.</p></div>
+            </div>
+        </div>
+        <div id="survivalGraphContainer">
+             <h3>Survival & Death Probability Over Time</h3>
+             <svg id="survivalGraphSvg" class="graph-svg" width="100%" height="350"></svg> 
+             <div class="graph-legend">
+                <span class="legend-item"><span class="legend-color-box" style="background-color:var(--graph-line1-color);"></span>Dying in Turn X</span>
+                <span class="legend-item"><span class="legend-color-box" style="background-color:var(--graph-line2-color);"></span>Cumulative Dead by Turn X</span>
+             </div>
+        </div>
+        <details open>
+            <summary>Documentation & How It Works (Fire Storm)</summary>
+            <div class="docs-content">
+                <h4>Purpose:</h4>
+                <p>This tool simulates the impact of the Fire Storm battlefield enchantment on a single unit over multiple turns and simulation runs. It helps estimate survivability, the frequency of direct hits, the chances of catching fire, and the effects of burning.</p>
+                <h4>How to Use (Inputs):</h4> <!-- ... (Inputs same as v2.9.3) ... -->
+                <ul>
+                    <li><strong>Unit Max HP:</strong> The starting and maximum Hit Points of the unit. (Default: 10)</li>
+                    <li><strong>Unit Armor (Protection):</strong> The unit's base armor value. (Default: 0)</li>
+                    <li><strong>Unit Fire Resistance (FR):</strong> The unit's Fire Resistance value. Can be negative for fire vulnerability. (Default: 0)</li>
+                    <li><strong>Unit Size:</strong> The size of the unit, used for calculating burning damage (e.g., Size 1 to 10). (Default: 3)</li>
+                    <li><strong>HP Gained Per Turn:</strong> Amount of HP the unit regenerates at the end of each full turn. Accepts fractional values (e.g., 0.5). (Default: 0)</li>
+                    <li><strong>Province Temperature:</strong> The temperature scale of the province, from Cold -5 (max cold) to Heat +5 (max heat). (Default: 0)</li>
+                    <li><strong>Unit is Ethereal?:</strong> If checked, the unit cannot catch fire. (Default: No)</li>
+                    <li><strong>Is it Raining?:</strong> If checked, significantly increases the chance of putting out fires. (Default: No)</li>
+                    <li><strong>Max Turns to Simulate:</strong> The maximum number of turns a single simulation run will last if the unit survives that long. (Default: 100)</li>
+                    <li><strong>SimulationRuns:</strong> Number of times to run the full simulation sequence for statistical analysis. (Default: 10000)</li>
+                </ul>
+                <h4>Mechanics Modeled:</h4>
+                <ol>
+                    <li><strong>Simulation Run vs. Turn:</strong> (Standard explanation)</li>
+                    <li><strong>Fire Storm Event Timing:</strong> (Standard explanation: 23.4375 opportunities/turn)</li>
+                    <li><strong>Chance for Unit to be Hit per Opportunity:</strong> 3% chance.</li>
+                    <li><strong>Initial Damage Calculation (per Fire Storm Hit):</strong>
+                        <ul>
+                            <li>Base Damage Roll: <code>6 + DRN_1 - DRN_2</code> (fire damage). This value (before armor/FR) is also used as the base for the "catch fire" roll.</li>
+                            <li>Armor Piercing (AP): Effective Protection = <code>floor(Unit_Armor / 2)</code>.</li>
+                            <li>Damage after Armor: <code>Base_Damage_Roll - Effective_Protection</code>.</li>
+                            <li><strong>Fire Resistance on Initial Hit (Two-Part):</strong>
+                                <ol style="list-style-type: lower-alpha; padding-left: 20px;">
+                                    <li>The damage remaining after armor is first reduced directly by <code>Unit_FR</code>.</li>
+                                    <li>Then, an additional amount is subtracted. This amount is <code>Unit_FR * 2%</code> of the spell's original base damage component (which is 6 for Fire Storm), rounded normally (0.5 up). So, <code>Math.round(Unit_FR * 0.02 * 6)</code> or <code>Math.round(Unit_FR * 0.12)</code> is subtracted.</li>
+                                </ol>
+                            </li>
+                            <li>Final HP loss from the hit: <code>max(0, Resulting_Damage_After_All_Reductions)</code>.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Catching Fire (after a Fire Storm Hit):</strong>
+                        <ul>
+                            <li>Base for roll: Uses the <code>6 + DRN_1 - DRN_2</code> result *before* armor or the hit's FR mitigation.</li>
+                            <li>Chance to Catch Fire = <code>max(0, Base_For_Roll) * 4%</code>.</li>
+                            <li>Cannot catch fire if <code>Unit_FR >= 10</code> or Ethereal.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Burning Damage (at start of turn, if on fire):</strong> (Standard explanation: d(Size)/2, FR halving if FR>=5, direct FR reduction)</li>
+                    <li><strong>Extinguishing Fire (at end of turn, if on fire):</strong> (Standard explanation: base, FR, temp, rain)</li>
+                    <li><strong>HP Regeneration:</strong> (Standard explanation: end of turn, fractional accumulation)</li>
+                </ol>
+                <h4>Output Statistics & Graph:</h4> (Standard explanation)
+                 <h4>Limitations:</h4> (Standard explanation, ensure FR part is accurate)
+            </div>
+        </details>
+    </div>
+    <script>
+        // Constants
+        const FS_TICKS_PER_EVENT = 320;
+        const FS_TICKS_PER_TURN = 7500;
+        const FS_EVENTS_PER_TURN_RAW = FS_TICKS_PER_TURN / FS_TICKS_PER_EVENT;
+        const FS_HIT_CHANCE_PER_OPPORTUNITY = 0.03;
+        const FS_BASE_DAMAGE_COMPONENT = 6; // Used for the % part of FR calc on initial hit
+        const FS_CATCH_FIRE_CHANCE_MULTIPLIER = 0.04;
+        const FS_EXTINGUISH_BASE_CHANCE = 0.25;
+        const FS_EXTINGUISH_MIN_CHANCE = 0.01;
+        const MAX_DRN_ITERATIONS = 20;
+
+        function rollD6() { return Math.floor(Math.random() * 6) + 1; }
+        function calculateDRN() { 
+            let d1 = rollD6(), d2 = rollD6(), total = d1 + d2, iterations, currentDieVal;
+            currentDieVal = d1; iterations = 0;
+            while (currentDieVal === 6 && iterations < MAX_DRN_ITERATIONS) { total -= 1; currentDieVal = rollD6(); total += currentDieVal; iterations++; }
+            currentDieVal = d2; iterations = 0;
+            while (currentDieVal === 6 && iterations < MAX_DRN_ITERATIONS) { total -= 1; currentDieVal = rollD6(); total += currentDieVal; iterations++; }
+            return total;
+        }
+
+        function calculateFireStormInitialDamageAndCatchFire(inputs, currentHp) {
+            const rawDRNComponent = calculateDRN() - calculateDRN();
+            const initialDamageRoll = FS_BASE_DAMAGE_COMPONENT + rawDRNComponent; 
+            
+            const damageValueForCatchFireRoll = Math.max(0, initialDamageRoll);
+
+            const effectiveArmor = Math.floor(inputs.unitArmor / 2);
+            let damageAfterArmor = initialDamageRoll - effectiveArmor;
+
+            // Apply Fire Resistance (Two-Part)
+            // Part 1: Direct subtraction
+            let damageAfterDirectFR = damageAfterArmor - inputs.unitFR;
+
+            // Part 2: Percentage reduction based on spell's base component (6), then subtract this amount
+            const percentageBasedReductionAmount = Math.round(inputs.unitFR * 0.02 * FS_BASE_DAMAGE_COMPONENT); // Math.round(FR * 0.12)
+            
+            let finalDamageToApply = Math.max(0, damageAfterDirectFR - percentageBasedReductionAmount);
+            
+            const actualHpLost = Math.min(finalDamageToApply, currentHp);
+            
+            let catchesFire = false;
+            if (inputs.unitFR < 10 && !inputs.isUnitEthereal && damageValueForCatchFireRoll > 0) { 
+                if (Math.random() < (damageValueForCatchFireRoll * FS_CATCH_FIRE_CHANCE_MULTIPLIER)) {
+                    catchesFire = true;
+                }
+            }
+            return { hpLost: actualHpLost, caughtFireThisHit: catchesFire };
+        }
+        
+        // simulateOneFullRun_FireStorm (from v2.9.3 - this function was already correct based on the logic)
+        // startFireStormSimulation (from v2.9.3 - this function was already correct)
+        // drawSurvivalGraph (from v2.8.3 - graph visuals)
+        // Element.prototype.setAttributes (helper)
+        // (Copying the full JS functions from v2.9.3 as they should now work with the corrected calculateFireStormInitialDamageAndCatchFire)
+        function simulateOneFullRun_FireStorm(inputs) {
+            let currentHp = inputs.unitMaxHp;
+            let turnsCompletedThisRun = 0; 
+            let totalFireStormHits = 0;
+            let totalInitialHPLost = 0; 
+            let timesCaughtFireEvent = 0; 
+            let totalBurningHPLost = 0;   
+            let turnsSpentOnFire = 0;      
+            let died = false;
+            let isOnFire = false; 
+            let eventOpportunitiesAccumulator = 0;
+            let hpRegenAccumulator = 0;
+
+            for (let t = 0; t < inputs.maxTurns; t++) { 
+                if (isOnFire) {
+                    turnsSpentOnFire++;
+                    let burnDmgRoll = Math.floor(Math.random() * inputs.unitSize) + 1;
+                    let baseBurnDmg = Math.ceil(burnDmgRoll / 2);
+                    if (inputs.unitFR >= 5) { baseBurnDmg = Math.floor(baseBurnDmg / 2); }
+                    const finalBurnDmg = Math.max(0, baseBurnDmg - inputs.unitFR); 
+                    const actualBurnHpLoss = Math.min(finalBurnDmg, currentHp);
+                    currentHp -= actualBurnHpLoss;
+                    totalBurningHPLost += actualBurnHpLoss;
+                    if (currentHp <= 0) { died = true; turnsCompletedThisRun = t; break; }
+                }
+
+                eventOpportunitiesAccumulator += FS_EVENTS_PER_TURN_RAW;
+                const eventsToProcessThisTurn = Math.floor(eventOpportunitiesAccumulator);
+                eventOpportunitiesAccumulator -= eventsToProcessThisTurn;
+
+                for (let i = 0; i < eventsToProcessThisTurn; i++) {
+                    if (died) break; 
+                    if (currentHp <= 0 && !died) { died = true; turnsCompletedThisRun = t; break; } 
+
+                    if (Math.random() < FS_HIT_CHANCE_PER_OPPORTUNITY) {
+                        totalFireStormHits++;
+                        const hitOutcome = calculateFireStormInitialDamageAndCatchFire(inputs, currentHp);
+                        currentHp -= hitOutcome.hpLost;
+                        totalInitialHPLost += hitOutcome.hpLost;
+                        if (currentHp <= 0) { died = true; turnsCompletedThisRun = t; break; }
+                        if (hitOutcome.caughtFireThisHit && !isOnFire) { isOnFire = true; timesCaughtFireEvent++; }
+                    }
+                }
+                if (died) break; 
+
+                if (isOnFire) {
+                    let extinguishChance = FS_EXTINGUISH_BASE_CHANCE + (inputs.unitFR * 0.01) + 
+                                         ((inputs.provinceTemperature <= 0 ? Math.abs(inputs.provinceTemperature) : -inputs.provinceTemperature) * 0.05) +
+                                         (inputs.isRaining ? 1.00 : 0);
+                    extinguishChance = Math.min(1.0, Math.max(FS_EXTINGUISH_MIN_CHANCE, extinguishChance));
+                    if (Math.random() < extinguishChance) { isOnFire = false; }
+                }
+
+                if (inputs.hpRegenPerTurnFloat > 0) {
+                    hpRegenAccumulator += inputs.hpRegenPerTurnFloat;
+                    const actualHpToRegen = Math.floor(hpRegenAccumulator);
+                    if (actualHpToRegen > 0) {
+                        currentHp += actualHpToRegen;
+                        currentHp = Math.min(currentHp, inputs.unitMaxHp);
+                        hpRegenAccumulator -= actualHpToRegen;
+                    }
+                }
+                if (currentHp <= 0 && !died) { died = true; turnsCompletedThisRun = t; break;}
+                turnsCompletedThisRun = t + 1;
+            }
+            return { numTurnsCompleted: died ? turnsCompletedThisRun : inputs.maxTurns, died: died, turnOfDeath: died ? turnsCompletedThisRun : -1, totalFireStormHits, totalInitialHPLost, timesCaughtFireEvent, totalBurningHPLost, turnsSpentOnFire };
+        }
+        function startFireStormSimulation() {
+            document.querySelectorAll('.input-panel input[type="number"], .input-panel select').forEach(input => input.style.borderColor = '');
+            const simInputs = {};
+            let isValid = true; let errorMessages = [];
+            const inputConfigs = [
+                { id: 'unitMaxHp', parse: parseInt, min: 1, prettyName: "Unit Max HP" },
+                { id: 'unitArmor', parse: parseInt, min: 0, prettyName: "Unit Armor" },
+                { id: 'unitFR', parse: parseInt, min: -Infinity, prettyName: "Unit Fire Resistance" },
+                { id: 'unitSize', parse: parseInt, min: 1, max: 10, prettyName: "Unit Size" },
+                { id: 'hpRegenPerTurn', parse: parseFloat, min: 0, keyName: 'hpRegenPerTurnFloat', prettyName: "HP Gained Per Turn" },
+                { id: 'provinceTemperature', parse: parseInt, min: -5, max: 5, prettyName: "Province Temperature" },
+                { id: 'maxTurnsToSimulate', parse: parseInt, min: 1, keyName: 'maxTurns', prettyName: "Max Turns to Simulate" },
+                { id: 'simulationRuns', parse: parseInt, min: 1, keyName: 'numRuns', prettyName: "Simulation Runs" }
+            ];
+            inputConfigs.forEach(config => {
+                const element = document.getElementById(config.id);
+                if (!element) { isValid = false; errorMessages.push(`Critical error: Element ID '${config.id}' not found.`); return; }
+                const valueStr = element.value; const parsedValue = config.parse(valueStr);
+                const keyToStore = config.keyName || config.id;
+                if (valueStr === "" || isNaN(parsedValue)) { isValid = false; errorMessages.push(`${config.prettyName} must be a valid number.`); element.style.borderColor = 'red';
+                } else {
+                    if (config.min !== undefined && parsedValue < config.min) { isValid = false; errorMessages.push(`${config.prettyName} must be >= ${config.min}.`); element.style.borderColor = 'red';}
+                    if (config.max !== undefined && parsedValue > config.max) { isValid = false; errorMessages.push(`${config.prettyName} must be <= ${config.max}.`); element.style.borderColor = 'red';}
+                }
+                simInputs[keyToStore] = parsedValue;
+            });
+            simInputs.isUnitEthereal = document.getElementById('isUnitEthereal') ? document.getElementById('isUnitEthereal').checked : false;
+            simInputs.isRaining = document.getElementById('isRaining') ? document.getElementById('isRaining').checked : false;
+            if(!document.getElementById('isUnitEthereal')) { isValid = false; errorMessages.push("Element 'isUnitEthereal' not found.");}
+            if(!document.getElementById('isRaining')) { isValid = false; errorMessages.push("Element 'isRaining' not found.");}
+
+            const resultsDiv = document.getElementById('results'); 
+            const svgGraphElement = document.getElementById('survivalGraphSvg');
+            if (!isValid) { resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Input errors:<br>- ${errorMessages.join('<br>- ')}</p>`; svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>'; return; }
+            
+            resultsDiv.innerHTML = "<p style='padding:10px;'>Running Fire Storm simulation, please wait...</p>"; 
+            svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Generating graph...</text>';
+            document.querySelector('.action-button').disabled = true;
+            try {
+                let sumOfCompletedTurnsStat = 0; let deathCount = 0;
+                let totalFireStormHitsSum = 0; let totalInitialHPLostSum = 0;
+                let totalTimesCaughtFireEventSum = 0; let totalBurningHPLostSum = 0;
+                let totalTurnsSpentOnFireSum = 0;
+                let deathsAtTurnT_array = new Array(simInputs.maxTurns).fill(0);
+                let allNumCompletedTurns = []; 
+                let runsWhereUnitCaughtFireAtLeastOnce = 0;
+                for (let i = 0; i < simInputs.numRuns; i++) {
+                    const runResult = simulateOneFullRun_FireStorm(simInputs);
+                    allNumCompletedTurns.push(runResult.numTurnsCompleted);
+                    sumOfCompletedTurnsStat += runResult.numTurnsCompleted;
+                    if (runResult.died) { deathCount++; if (runResult.turnOfDeath >= 0 && runResult.turnOfDeath < simInputs.maxTurns) { deathsAtTurnT_array[runResult.turnOfDeath]++; }}
+                    totalFireStormHitsSum += runResult.totalFireStormHits;
+                    totalInitialHPLostSum += runResult.totalInitialHPLost;
+                    if (runResult.timesCaughtFireEvent > 0) { runsWhereUnitCaughtFireAtLeastOnce++; }
+                    totalTimesCaughtFireEventSum += runResult.timesCaughtFireEvent;
+                    totalBurningHPLostSum += runResult.totalBurningHPLost;
+                    totalTurnsSpentOnFireSum += runResult.turnsSpentOnFire;
+                }
+                const avgSurvivalLength = sumOfCompletedTurnsStat / simInputs.numRuns;
+                const deathPercentage = (deathCount / simInputs.numRuns) * 100;
+                let stdDevSurvivalLength = 0;
+                if (simInputs.numRuns > 1) { let sumSqDiff = allNumCompletedTurns.reduce((acc, len) => acc + Math.pow(len - avgSurvivalLength, 2), 0); stdDevSurvivalLength = Math.sqrt(sumSqDiff / simInputs.numRuns); }
+                const survivalPlus1Std = avgSurvivalLength + stdDevSurvivalLength; const survivalMinus1Std = Math.max(0, avgSurvivalLength - stdDevSurvivalLength);
+                const survivalPlus2Std = avgSurvivalLength + (2 * stdDevSurvivalLength); const survivalMinus2Std = Math.max(0, avgSurvivalLength - (2 * stdDevSurvivalLength));
+                const avgHitsPerRun = totalFireStormHitsSum / simInputs.numRuns;
+                const avgInitialHPLostPerFireStormHit = totalFireStormHitsSum > 0 ? totalInitialHPLostSum / totalFireStormHitsSum : 0;
+                const percRunsUnitCaughtFire = (runsWhereUnitCaughtFireAtLeastOnce / simInputs.numRuns) * 100;
+                const avgTimesCaughtFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTimesCaughtFireEventSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
+                const avgBurningHPLost_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalBurningHPLostSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
+                const avgTurnsOnFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTurnsSpentOnFireSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
+                let outputHTML = `<div class="stat-group"><h4>Overall Statistics (per Run)</h4>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Total Runs:</span><span class="stat-value">${simInputs.numRuns}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Died in Runs:</span><span class="stat-value">${deathCount} (${deathPercentage.toFixed(1)}%)</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Survival (completed turns):</span><span class="stat-value">${avgSurvivalLength.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Std. Dev. of Survival:</span><span class="stat-value">${stdDevSurvivalLength.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">    ±1 Std Dev Range:</span><span class="stat-value">${survivalMinus1Std.toFixed(2)} - ${survivalPlus1Std.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">    ±2 Std Dev Range:</span><span class="stat-value">${survivalMinus2Std.toFixed(2)} - ${survivalPlus2Std.toFixed(2)}</span></div></div>`;
+                outputHTML += `<div class="stat-group"><h4>Fire Storm Hit Statistics</h4>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Fire Storm Hits / Run:</span><span class="stat-value">${avgHitsPerRun.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. HP Lost / Fire Storm Hit:</span><span class="stat-value">${avgInitialHPLostPerFireStormHit.toFixed(2)}</span></div></div>`;
+                outputHTML += `<div class="stat-group"><h4>Burning Statistics</h4>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Runs Unit Caught Fire:</span><span class="stat-value">${runsWhereUnitCaughtFireAtLeastOnce} (${percRunsUnitCaughtFire.toFixed(1)}%)</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Times Caught Fire (if ever caught):</span><span class="stat-value">${avgTimesCaughtFire_IfEverCaught.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Total Burning HP Lost (if ever caught):</span><span class="stat-value">${avgBurningHPLost_IfEverCaught.toFixed(2)}</span></div>`;
+                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Turns Spent Burning (if ever caught):</span><span class="stat-value">${avgTurnsOnFire_IfEverCaught.toFixed(2)}</span></div></div>`;
+                resultsDiv.innerHTML = outputHTML;
+                let probDyingInTurnT_graphData = deathsAtTurnT_array.map(d => (d / simInputs.numRuns) * 100);
+                let cumulativeProbDeadByTurnT_graphData = [];
+                let cumulativeDeaths = 0;
+                for (let deathsInT of deathsAtTurnT_array) { cumulativeDeaths += deathsInT; cumulativeProbDeadByTurnT_graphData.push((cumulativeDeaths / simInputs.numRuns) * 100); }
+                drawSurvivalGraph(svgGraphElement, simInputs.maxTurns, probDyingInTurnT_graphData, cumulativeProbDeadByTurnT_graphData);
+            } catch (error) { resultsDiv.innerHTML = `<p style="color:red; padding:10px;">Sim Error: ${error.message}</p><pre>${error.stack}</pre>`; svgGraphElement.innerHTML = `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>`; console.error("Fire Storm Sim error:", error);
+            } finally { document.querySelector('.action-button').disabled = false; }
+        }
+        function drawSurvivalGraph(svgElement, maxTurnsToGraph, probDyingInTurnT_data, cumulativeProbDeadByTurnT_data) {
+            svgElement.innerHTML = ''; 
+            const svgNS = "http://www.w3.org/2000/svg";
+            const actualWidth = svgElement.parentElement.clientWidth; 
+            svgElement.setAttribute('width', actualWidth);
+            const height = parseInt(svgElement.getAttribute('height'));
+            const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+            const graphWidth = actualWidth - margin.left - margin.right;
+            const graphHeight = height - margin.top - margin.bottom;
+
+            if (graphWidth <=0 || graphHeight <=0) { svgElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Not enough space for graph.</text>'; return; }
+            const numDataPoints = maxTurnsToGraph;
+            if (numDataPoints === 0) { svgElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">No data for graph.</text>'; return;}
+
+            const xScale = (turnIndex) => margin.left + (turnIndex / (numDataPoints > 1 ? numDataPoints - 1 : 1)) * graphWidth;
+            const yScale = (percentage) => margin.top + graphHeight - (percentage / 100) * graphHeight;
+            
+            const gridGroup = document.createElementNS(svgNS, 'g'); 
+            gridGroup.setAttribute('class', 'graph-grid'); 
+            svgElement.appendChild(gridGroup);
+            
+            const xAxisLine = document.createElementNS(svgNS, 'line'); 
+            xAxisLine.setAttributes({ x1: margin.left, y1: margin.top + graphHeight, x2: margin.left + graphWidth, y2: margin.top + graphHeight, class: 'graph-axis boundary-line' }); 
+            svgElement.appendChild(xAxisLine);
+            const yAxisLine = document.createElementNS(svgNS, 'line'); 
+            yAxisLine.setAttributes({ x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + graphHeight, class: 'graph-axis boundary-line' }); 
+            svgElement.appendChild(yAxisLine);
+
+            const numXTicks = Math.min(10, numDataPoints > 0 ? numDataPoints : 1);
+            for (let i = 0; i <= numXTicks; i++) {
+                const turnVal = numDataPoints > 1 ? Math.round(i * (numDataPoints - 1) / numXTicks) : (numDataPoints === 1 ? 0 : i) ;
+                const x = xScale(turnVal);
+                const tick = document.createElementNS(svgNS, 'line'); 
+                tick.setAttributes({ x1: x, y1: margin.top + graphHeight, x2: x, y2: margin.top + graphHeight + 6, class: 'graph-axis tick-line' }); 
+                svgElement.appendChild(tick);
+                const label = document.createElementNS(svgNS, 'text'); 
+                label.setAttributes({ x: x, y: margin.top + graphHeight + 20, 'text-anchor': 'middle', class: 'graph-axis' }); 
+                label.textContent = turnVal; 
+                svgElement.appendChild(label);
+                if (Math.abs(x - margin.left) > 1e-6 && Math.abs(x - (margin.left + graphWidth)) > 1e-6) { 
+                    const gridLine = document.createElementNS(svgNS, 'line'); 
+                    gridLine.setAttributes({ x1: x, y1: margin.top, x2: x, y2: margin.top + graphHeight, class: 'graph-grid-line' }); 
+                    gridGroup.appendChild(gridLine);
+                }
+            }
+            const xAxisLabel = document.createElementNS(svgNS, 'text'); 
+            xAxisLabel.setAttributes({x: margin.left + graphWidth/2, y: height - 10, 'text-anchor':'middle', class:'graph-axis', 'font-weight':'500'}); 
+            xAxisLabel.textContent = "Turn Number"; 
+            svgElement.appendChild(xAxisLabel);
+
+            for (let i = 0; i <= 10; i++) { // Y-axis ticks at 10%
+                const perc = i * 10; 
+                const y = yScale(perc);
+                const tick = document.createElementNS(svgNS, 'line'); 
+                tick.setAttributes({ x1: margin.left - 6, y1: y, x2: margin.left, y2: y, class: 'graph-axis tick-line' }); 
+                svgElement.appendChild(tick);
+                const label = document.createElementNS(svgNS, 'text'); 
+                label.setAttributes({ x: margin.left - 10, y: y, 'text-anchor': 'end', 'dominant-baseline': 'middle', class: 'graph-axis' }); 
+                label.textContent = perc + '%'; 
+                svgElement.appendChild(label);
+                if (Math.abs(y - (margin.top + graphHeight)) > 1e-6 && Math.abs(y - margin.top) > 1e-6) {
+                    const gridLine = document.createElementNS(svgNS, 'line'); 
+                    gridLine.setAttributes({ x1: margin.left, y1: y, x2: margin.left + graphWidth, y2: y, class: 'graph-grid-line' }); 
+                    gridGroup.appendChild(gridLine);
+                }
+            }
+            
+            const createPointsString = (data, xMap, yMap) => data.map((d, i) => `${xMap(i).toFixed(2)},${yMap(d).toFixed(2)}`).join(' ');
+            if (probDyingInTurnT_data.length > 0) { 
+                const polyline1 = document.createElementNS(svgNS, 'polyline'); 
+                polyline1.setAttribute('points', createPointsString(probDyingInTurnT_data, xScale, yScale)); 
+                polyline1.setAttribute('class', 'graph-line line1'); 
+                svgElement.appendChild(polyline1); 
+            }
+            if (cumulativeProbDeadByTurnT_data.length > 0) { 
+                const polyline2 = document.createElementNS(svgNS, 'polyline'); 
+                polyline2.setAttribute('points', createPointsString(cumulativeProbDeadByTurnT_data, xScale, yScale)); 
+                polyline2.setAttribute('class', 'graph-line line2'); 
+                svgElement.appendChild(polyline2); 
+            }
+        }
+        Element.prototype.setAttributes = function (attrs) { for (var key in attrs) this.setAttribute(key, attrs[key]); };
+    </script>
+</body>
+</html>
