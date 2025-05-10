@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rigor Mortis Simulator (Consistent DRN)</title>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <style>
+        /* CSS is IDENTICAL to your last confirmed working version */
+        :root {
+            --bg-color: #f7f8fc;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --muted-text-color: #495057; 
+            --primary-color-action: #007bff;
+            --primary-hover-color-action: #0056b3;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0,0,0,0.07);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            --error-color: #dc3545;
+        }
+        body {
+            font-family: var(--font-family); line-height: 1.6; margin: 0;
+            background-color: var(--bg-color); color: var(--text-color);
+            display: flex; justify-content: center; padding: 20px;
+            min-height: 100vh; box-sizing: border-box;
+        }
+        .calculator-container { 
+            background-color: var(--surface-color); padding: 30px; border-radius: 10px;
+            box-shadow: 0 6px 18px var(--shadow-color); width: 100%; max-width: 1000px; 
+        }
+        header h1 {
+            color: var(--text-color); text-align: center; margin-top: 0;
+            margin-bottom: 30px; font-size: 1.75em; font-weight: 600;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.8fr; 
+            gap: 30px;
+        }
+        .input-panel h2, .output-panel h2 {
+            margin-top: 0; margin-bottom: 20px; font-size: 1.25em; color: var(--text-color);
+            border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-weight: 500;
+        }
+        .input-group {
+            display: flex; align-items: center; margin-bottom: 15px; flex-wrap: wrap; 
+        }
+        .input-group label {
+            flex: 0 0 180px; 
+            margin-bottom: 0; padding-right: 10px;
+            box-sizing: border-box; line-height: 1.3;
+            font-weight: 500; font-size: 0.9em; color: var(--muted-text-color);
+        }
+         .input-group input[type="checkbox"] + label {
+            flex-basis: auto; margin-left: 5px; font-weight: normal;
+         }
+         .input-group input[type="checkbox"]{ width: auto; flex-shrink: 0;}
+        .input-group input[type="number"] {
+            flex: 1; min-width: 80px; padding: 8px 10px; box-sizing: border-box;
+            border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9em; 
+            transition: border-color 0.2s, box-shadow 0.2s; font-family: var(--font-family); 
+        }
+        .input-group input[type="number"]:focus {
+            border-color: var(--primary-color-action); box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+            outline: none;
+        }
+         .input-group input.error-input { border-color: var(--error-color) !important; }
+         .error-summary { color: var(--error-color); font-size: 0.9em; margin-bottom: 15px;}
+
+        .action-button {
+            display: block; width: 100%; padding: 12px 15px;
+            background-color: var(--primary-color-action); color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 1.05em; font-weight: 500;
+            transition: background-color 0.2s; margin-top: 25px;
+        }
+        .action-button:hover { background-color: var(--primary-hover-color-action); }
+        .action-button:disabled { background-color: #6c757d; cursor: not-allowed; }
+
+        #resultsSummary {
+            margin-top: 0; padding: 15px; background-color: #f8f9fa;
+            border: 1px solid var(--border-color); border-radius: 8px;
+            font-size: 0.9em; 
+            white-space: pre; 
+            line-height: 1.4; 
+        }
+        #resultsSummary .value { font-weight: 600; color: var(--primary-color-action); }
+        #fatigueOverTimeChart { min-height: 350px; margin-top: 20px; } 
+        .docs-container { grid-column: 1 / -1; margin-top: 20px; }
+        details { border: 1px solid #ccc; border-radius: 4px; padding: 10px 15px; background-color: #f9f9f9;}
+        summary { cursor: pointer; margin-bottom: 8px; font-weight: bold;}
+        .docs-content { font-size: 0.9em; line-height: 1.5; }
+        .docs-content h4 { margin-top: 12px; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px;}
+        .docs-content h4:first-of-type { margin-top: 5px; }
+        .docs-content p, .docs-content ul { margin-top: 0; margin-bottom: 8px;}
+        .docs-content ul { padding-left: 25px; } .docs-content ol { padding-left: 25px; }
+        .docs-content li { margin-bottom: 4px;}
+        .docs-content code { background-color: #eee; padding: 1px 4px; border-radius: 3px; font-family: Consolas, "Courier New", monospace; font-size: 0.95em;}
+        .docs-content table { width: auto; border-collapse: collapse; margin-top: 10px; font-size: 0.95em; }
+        .docs-content th, .docs-content td { border: 1px solid var(--border-color); padding: 6px 10px; text-align: left; }
+        .docs-content th { background-color: #f8f9fa; font-weight: 500; }
+        @media (max-width: 800px) { 
+            .main-layout { grid-template-columns: 1fr; }
+            .input-group label { flex: 1 1 100%; margin-bottom: 5px; }
+            .input-group input[type="number"] { width: 100%; min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <header><h1>Rigor Mortis Simulator</h1></header>
+        <div class="main-layout">
+            <div class="input-panel">
+                <!-- HTML for inputs remains the same as your last working version -->
+                <h2>Simulation Setup</h2>
+                <div class="input-group">
+                    <label for="numTurns">Turns to Simulate:</label>
+                    <input type="number" id="numTurns" value="100" min="1" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="numRuns">Simulation Runs:</label>
+                    <input type="number" id="numRuns" value="10000" min="1" step="1">
+                </div>
+                <h2>Effect Parameters</h2>
+                <div class="input-group">
+                    <label for="magicScale">Magic Scale:</label>
+                    <input type="number" id="magicScale" value="0" min="-3" max="3" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="rigorExtraPen">Extra Penetration:</label> 
+                    <input type="number" id="rigorExtraPen" value="0" min="0" step="1">
+                </div>
+                <h2>Unit Parameters</h2>
+                <div class="input-group">
+                    <label for="unitMR">Unit MR:</label>
+                    <input type="number" id="unitMR" value="10" min="0" step="1"> 
+                </div>
+                <div class="input-group">
+                    <label for="initialFatigue">Initial Unit Fatigue:</label>
+                    <input type="number" id="initialFatigue" value="0" min="0" max="200" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="unitMaxHP">Unit Max HP:</label>
+                    <input type="number" id="unitMaxHP" value="10" min="1" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="extraReinvig">Extra Reinvig/Turn:</label>
+                    <input type="number" id="extraReinvig" value="0" min="0" step="any">
+                </div>
+                <div class="input-group">
+                    <input type="checkbox" id="reliefActive">
+                    <label for="reliefActive">Relief Spell Active?</label>
+                </div>
+                <button class="action-button" id="simulateButton">Run Simulation</button>
+                <div id="errorSummary" class="error-summary" style="display:none;"></div>
+            </div>
+            <div class="output-panel">
+                <h2>Results</h2>
+                <pre id="resultsSummary">Run simulation to see results.</pre>
+                <div id="fatigueOverTimeChart"></div> 
+            </div>
+        </div>
+        <div class="docs-container">
+            <details>
+                <summary>Documentation & How It Works</summary>
+                <div class="docs-content">
+                    <h4>Purpose:</h4>
+                    <p>This tool simulates the fatigue and HP status of a single unit exposed to a recurring "Battlefield Rigor Mortis" effect over several turns. It accounts for natural fatigue recovery, optional Relief spell, and HP loss from extreme fatigue caused by Rigor Mortis.</p>
+                    <h4>Inputs:</h4>
+                    <ul>
+                        <li><strong>Turns to Simulate:</strong> Total game turns the effect is active (Default: 100).</li>
+                        <li><strong>Simulation Runs:</strong> Number of times the full simulation is repeated for statistical accuracy (Default: 10,000).</li>
+                        <li><strong>Magic Scale:</strong> Province magic scale (-3 to +3), affects Rigor effect penetration.</li>
+                        <li><strong>Extra Penetration:</strong> Any additional penetration bonus for this Rigor Mortis effect.</li>
+                        <li><strong>Unit MR:</strong> Magic Resistance of the unit (Default: 10).</li>
+                        <li><strong>Initial Unit Fatigue:</strong> Starting fatigue of the unit (0-200).</li>
+                        <li><strong>Unit Max HP:</strong> Maximum and starting Hit Points of the unit.</li>
+                        <li><strong>Extra Reinvig/Turn:</strong> Additional flat fatigue recovery per turn (e.g., from items).</li>
+                        <li><strong>Relief Spell Active?:</strong> Check if the unit benefits from Relief.</li>
+                    </ul>
+                    <h4>Mechanics Modeled (per Turn):</h4>
+                    <p><strong>OpenD6 Roll:</strong> A single d6 roll where a 6 contributes 5 and re-rolls (can explode infinitely).</p>
+                    <p><strong>True DRN (2d6e-2d6e):</strong> Calculated as <code>(OpenD6_Roll_A1 + OpenD6_Roll_A2) - (OpenD6_Roll_B1 + OpenD6_Roll_B2)</code>.</p>
+                    <ol>
+                        <li><strong>Battlefield Rigor Mortis Pulses:</strong>
+                            <ul>
+                                <li>Averages 23.4375 "pulses" per game turn. Remainder tracking is used.</li>
+                                <li>For each pulse, the unit has a 3% chance of being targeted.</li>
+                                <li>Effect Penetration: Calculated as <code>15 + floor(Magic_Scale / 2) + Extra_Penetration_Input</code>.</li>
+                                <li>MR Check: If targeted, unit is affected if <code>Total_Effect_Penetration > (Unit_MR + True_DRN())</code>.</li>
+                                <li>Fatigue Inflicted: If affected, unit gains <code>max(0, 10 + True_DRN())</code> fatigue.</li>
+                                <li>HP Damage: If this Rigor-induced fatigue pushes current fatigue > 200, unit loses 1 HP. Fatigue is then capped at 200. If HP ≤ 0, unit dies.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Relief Spell (if active & unit alive):</strong> Unit recovers <code>max(0, 1 + True_DRN())</code> fatigue.</li>
+                        <li><strong>Natural Fatigue Recovery (if unit alive):</strong> Unit recovers <code>5 + Extra_Reinvig</code> if fatigue > 99, or <code>1 + Extra_Reinvig</code> if fatigue ≤ 99.</li>
+                    </ol>
+                    <h4>Outputs:</h4>
+                    <ul>
+                        <li>Average final fatigue and final HP.</li>
+                        <li>Probability of unit dying and average turn of death (if died).</li>
+                        <li>Average times targeted by Rigor and average times hit by Rigor (per run).</li>
+                        <li>Average fatigue gained *per successful Rigor hit*.</li>
+                        <li>Average *gross* fatigue gained from Rigor *per turn* (total Rigor fatigue / turns active in run).</li>
+                        <li>Average *net* fatigue gained *per turn* (overall Final Fatigue - Initial Fatigue / turns active in run).</li>
+                        <li>A line graph showing average fatigue over time (with 25th/75th percentile bands).</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        // --- Dominions Dice Mechanics ---
+        function openD6_dom() {
+            let total = 0; let roll;
+            do {
+                roll = Math.floor(Math.random() * 6) + 1;
+                total += (roll === 6 ? 5 : roll); // A 6 adds 5 and re-rolls
+            } while (roll === 6);
+            return total;
+        }
+
+        // ** RENAMED old drn to trueDrn and corrected its definition **
+        // This is the (2d6e - 2d6e) mechanic
+        function trueDrn() { 
+            const rollA1 = openD6_dom();
+            const rollA2 = openD6_dom();
+            const rollB1 = openD6_dom();
+            const rollB2 = openD6_dom();
+            return (rollA1 + rollA2) - (rollB1 + rollB2);
+        }
+
+        // --- DOM Elements --- (Same as before)
+        const numTurnsInput = document.getElementById('numTurns');
+        const numRunsInput = document.getElementById('numRuns');
+        const magicScaleInput = document.getElementById('magicScale');
+        const rigorExtraPenInput = document.getElementById('rigorExtraPen');
+        const unitMRInput = document.getElementById('unitMR');
+        const initialFatigueInput = document.getElementById('initialFatigue');
+        const unitMaxHPInput = document.getElementById('unitMaxHP');
+        const extraReinvigInput = document.getElementById('extraReinvig');
+        const reliefActiveCheckbox = document.getElementById('reliefActive');
+        const simulateButton = document.getElementById('simulateButton');
+        const resultsSummaryDiv = document.getElementById('resultsSummary');
+        const fatigueOverTimeChartDiv = document.getElementById('fatigueOverTimeChart');
+        const errorSummaryDiv = document.getElementById('errorSummary');
+        
+        // --- Simulation Logic ---
+        function runSingleSimulationInstance(params) {
+            let currentFatigue = params.initialFatigue;
+            let currentHP = params.unitMaxHP;
+            let isAlive = true;
+            let turnOfDeath = -1; 
+            let timesTargetedByRigor = 0;
+            let timesHitByRigor = 0;
+            let totalFatigueFromRigorHits = 0; 
+
+            const fatigueHistoryForRun = [currentFatigue]; 
+            let rigorPulseRemainder = 0;
+            const totalEffectPenetration = 15 + Math.floor(params.magicScale / 2) + params.rigorExtraPen;
+            let actualTurnsSimulatedThisRun = params.numTurns;
+
+            for (let turn = 1; turn <= params.numTurns; turn++) {
+                if (!isAlive) {
+                    fatigueHistoryForRun.push(currentFatigue); 
+                    break; 
+                }
+
+                rigorPulseRemainder += 0.4375;
+                const actualPulsesThisTurn = 23 + Math.floor(rigorPulseRemainder);
+                rigorPulseRemainder -= Math.floor(rigorPulseRemainder);
+
+                for (let pulse = 0; pulse < actualPulsesThisTurn; pulse++) {
+                    if (Math.random() < 0.03) { 
+                        timesTargetedByRigor++;
+                        // ** CORRECTED MR Check to use trueDrn() **
+                        if (totalEffectPenetration > (params.unitMR + trueDrn())) { 
+                            timesHitByRigor++;
+                            // ** CORRECTED Rigor Fatigue amount to use trueDrn() **
+                            const fatigueFromRigor = Math.max(0, 10 + trueDrn());
+                            
+                            totalFatigueFromRigorHits += fatigueFromRigor; 
+                            currentFatigue += fatigueFromRigor;
+                            if (currentFatigue > 200) {
+                                currentHP -= 1; 
+                                if (currentHP <= 0) {
+                                    isAlive = false; turnOfDeath = turn; currentHP = 0; 
+                                    actualTurnsSimulatedThisRun = turn; 
+                                    currentFatigue = Math.min(200, currentFatigue); 
+                                    break; 
+                                }
+                            }
+                            currentFatigue = Math.min(200, currentFatigue); 
+                        }
+                    }
+                    if (!isAlive) break; 
+                }
+                if (!isAlive) {
+                    fatigueHistoryForRun.push(currentFatigue);
+                    continue; 
+                }
+
+                if (params.reliefActive) {
+                    // ** CORRECTED Relief recovery to use trueDrn() **
+                    const fatigueRecoveredByRelief = Math.max(0, 1 + trueDrn());
+                    currentFatigue = Math.max(0, currentFatigue - fatigueRecoveredByRelief);
+                }
+
+                const recoveryAmount = (currentFatigue > 99 ? 5 : 1) + params.extraReinvig;
+                currentFatigue = Math.max(0, currentFatigue - recoveryAmount);
+                
+                fatigueHistoryForRun.push(currentFatigue);
+            }
+            return { 
+                finalFatigue: currentFatigue, finalHP: currentHP, turnOfDeath: turnOfDeath, 
+                timesTargetedByRigor, timesHitByRigor, totalFatigueFromRigorHits,
+                fatigueHistory: fatigueHistoryForRun,
+                actualTurnsSimulatedThisRun: isAlive ? params.numTurns : (turnOfDeath > 0 ? turnOfDeath : 1)
+            };
+        }
+
+        // runFullSimulation, resetForm, and event listeners remain THE SAME as your last working version.
+        // Only the dice mechanics inside runSingleSimulationInstance and documentation were changed.
+        function runFullSimulation(params) { /* ... IDENTICAL TO PREVIOUS WORKING VERSION ... */ }
+        function resetForm() { /* ... IDENTICAL TO PREVIOUS WORKING VERSION ... */ }
+        document.addEventListener('DOMContentLoaded', () => { /* ... IDENTICAL TO PREVIOUS WORKING VERSION ... */});
+        
+        // --- For brevity, I will re-paste the runFullSimulation, resetForm, and DOMContentLoaded ---
+        // --- from the version you said "That works now", ensuring no other changes were made to them ---
+        function runFullSimulation(params) {
+            resultsSummaryDiv.textContent = "Simulating..."; 
+            Plotly.purge(fatigueOverTimeChartDiv);
+
+            let allFinalFatigues = []; let allFinalHP = []; let deathTurns = [];
+            let totalTargetedAgg = 0; let totalHitsAgg = 0; let totalDeaths = 0;
+            let grandTotalFatigueFromRigorHits = 0; 
+            let sumOfNetFatigueGainPerTurn = 0; 
+            let sumOfGrossRigorFatiguePerTurn = 0; 
+
+            const aggregateFatigueByTurn = Array(params.numTurns + 1).fill(null).map(() => ({ sum: 0, count: 0, values: [] }));
+
+            for (let i = 0; i < params.numRuns; i++) {
+                const runResult = runSingleSimulationInstance(params);
+                allFinalFatigues.push(runResult.finalFatigue);
+                allFinalHP.push(runResult.finalHP);
+                totalTargetedAgg += runResult.timesTargetedByRigor;
+                totalHitsAgg += runResult.timesHitByRigor;
+                grandTotalFatigueFromRigorHits += runResult.totalFatigueFromRigorHits;
+                
+                const netFatigueGain = runResult.finalFatigue - params.initialFatigue;
+                const turnsForThisRunCalc = runResult.actualTurnsSimulatedThisRun > 0 ? runResult.actualTurnsSimulatedThisRun : 1;
+                sumOfNetFatigueGainPerTurn += (netFatigueGain / turnsForThisRunCalc);
+                sumOfGrossRigorFatiguePerTurn += (runResult.totalFatigueFromRigorHits / turnsForThisRunCalc);
+
+                if (runResult.turnOfDeath !== -1) {
+                    totalDeaths++;
+                    deathTurns.push(runResult.turnOfDeath);
+                }
+                runResult.fatigueHistory.forEach((fat, turnIndex) => {
+                    if (aggregateFatigueByTurn[turnIndex]) {
+                        aggregateFatigueByTurn[turnIndex].sum += fat;
+                        aggregateFatigueByTurn[turnIndex].count++;
+                        aggregateFatigueByTurn[turnIndex].values.push(fat);
+                    }
+                });
+            }
+
+            const avgFinalFatigue = allFinalFatigues.length > 0 ? allFinalFatigues.reduce((s, v) => s + v, 0) / allFinalFatigues.length : 0;
+            const avgFinalHP = allFinalHP.length > 0 ? allFinalHP.reduce((s, v) => s + v, 0) / allFinalHP.length : 0;
+            const probDeath = (params.numRuns > 0 ? (totalDeaths / params.numRuns) : 0) * 100;
+            const avgDeathTurn = deathTurns.length > 0 ? deathTurns.reduce((s, v) => s + v, 0) / deathTurns.length : 'N/A';
+            const avgTargetedPerRun = params.numRuns > 0 ? totalTargetedAgg / params.numRuns : 0;
+            const avgHitPerRun = params.numRuns > 0 ? totalHitsAgg / params.numRuns : 0;
+            const avgFatiguePerSuccessfulHit = totalHitsAgg > 0 ? grandTotalFatigueFromRigorHits / totalHitsAgg : 0;
+            const avgNetFatigueGainPerTurnOverall = params.numRuns > 0 ? sumOfNetFatigueGainPerTurn / params.numRuns : 0;
+            const avgGrossRigorFatiguePerTurnOverall = params.numRuns > 0 ? sumOfGrossRigorFatiguePerTurn / params.numRuns : 0;
+
+            const labelWidth = 42; 
+            const valueWidth = 10; 
+            const summaryLines = [
+                `Avg. Final Fatigue:`.padEnd(labelWidth) + `<span class="value">${avgFinalFatigue.toFixed(2).padStart(valueWidth)}</span>`,
+                `Avg. Final HP:`.padEnd(labelWidth) + `<span class="value">${avgFinalHP.toFixed(2).padStart(valueWidth)}</span>`,
+                `Probability of Death:`.padEnd(labelWidth) + `<span class="value">${probDeath.toFixed(2).padStart(valueWidth-1)}%</span>`,
+                `Avg. Turn of Death (if died):`.padEnd(labelWidth) + `<span class="value">${(typeof avgDeathTurn === 'number' ? avgDeathTurn.toFixed(2) : avgDeathTurn).padStart(valueWidth)}</span>`,
+                `Avg. Times Rigor Targeted (per run):`.padEnd(labelWidth) + `<span class="value">${avgTargetedPerRun.toFixed(2).padStart(valueWidth)}</span>`,
+                `Avg. Times Rigor Hit (per run):`.padEnd(labelWidth) + `<span class="value">${avgHitPerRun.toFixed(2).padStart(valueWidth)}</span>`,
+                `Avg. Fatigue Gain per Rigor Hit:`.padEnd(labelWidth) + `<span class="value">${avgFatiguePerSuccessfulHit.toFixed(2).padStart(valueWidth)}</span>`,
+                `Avg. Gross Rigor Fatigue Gain / Turn:`.padEnd(labelWidth) + `<span class="value">${avgGrossRigorFatiguePerTurnOverall.toFixed(2).padStart(valueWidth)}</span>`,
+                `Avg. Net Fatigue Gain / Turn (Overall):`.padEnd(labelWidth) + `<span class="value">${avgNetFatigueGainPerTurnOverall.toFixed(2).padStart(valueWidth)}</span>`
+            ];
+            resultsSummaryDiv.innerHTML = summaryLines.join('\n');
+
+            const turnsAxis = Array.from({ length: params.numTurns + 1 }, (_, i) => i);
+            const avgFatigueData = aggregateFatigueByTurn.map(d => (d.count > 0 ? d.sum / d.count : null));
+            const p25Fatigue = aggregateFatigueByTurn.map(d => { if (d.values.length === 0) return null; d.values.sort((a,b)=>a-b); return d.values[Math.floor(d.values.length * 0.25)]; });
+            const p75Fatigue = aggregateFatigueByTurn.map(d => { if (d.values.length === 0) return null; return d.values[Math.floor(d.values.length * 0.75)]; });
+            const p25Trace = { x: turnsAxis, y: p25Fatigue, mode: 'lines', name: '25-75th Pctl', line: {color: 'rgba(0,123,255,0.2)', dash: 'dash', width:1}, legendgroup: 'percentiles', showlegend: true}; 
+            const p75Trace = { x: turnsAxis, y: p75Fatigue, mode: 'lines', name: '75th Pctl', fill: 'tonexty', fillcolor: 'rgba(0,123,255,0.1)', line: {color: 'rgba(0,123,255,0.2)', dash: 'dash', width:1}, legendgroup: 'percentiles', showlegend: false}; 
+            const avgFatigueTrace = { x: turnsAxis, y: avgFatigueData, mode: 'lines', name: 'Avg Fatigue', line: {color: 'var(--primary-color-action)', width: 2} };
+            const plotData = [p25Trace, p75Trace, avgFatigueTrace]; 
+            const plotLayout = { title: 'Unit Fatigue Over Time', xaxis: { title: 'Turn' }, yaxis: { title: 'Fatigue Level', range: [-5, 215] }, showlegend: true, legend: {y: 1.15, yanchor: 'top', orientation: 'h'} };
+            Plotly.newPlot(fatigueOverTimeChartDiv, plotData, plotLayout, {responsive: true});
+            
+            simulateButton.disabled = false; simulateButton.textContent = 'Run Simulation';
+        }
+        
+        function resetForm() { 
+            Object.keys(defaultValues).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.remove('error-input');
+                    if (element.type === 'checkbox') { element.checked = defaultValues[id]; } 
+                    else { element.value = defaultValues[id]; }
+                }
+            });
+            errorSummaryDiv.style.display = 'none'; errorSummaryDiv.innerHTML = '';
+            resultsSummaryDiv.textContent = 'Run simulation to see results.';
+            Plotly.purge(fatigueOverTimeChartDiv);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const simulateBtn = document.getElementById('simulateButton');
+            if (simulateBtn) {
+                simulateBtn.addEventListener('click', () => {
+                    errorSummaryDiv.style.display = 'none'; errorSummaryDiv.innerHTML = '';
+                    document.querySelectorAll('.input-panel input.error-input').forEach(el => el.classList.remove('error-input'));
+
+                    const params = {
+                        numTurns: parseInt(numTurnsInput.value),
+                        numRuns: parseInt(numRunsInput.value),
+                        magicScale: parseInt(magicScaleInput.value),
+                        rigorExtraPen: parseInt(rigorExtraPenInput.value),
+                        unitMR: parseInt(unitMRInput.value),
+                        initialFatigue: parseInt(initialFatigueInput.value),
+                        unitMaxHP: parseInt(unitMaxHPInput.value),
+                        extraReinvig: parseFloat(extraReinvigInput.value),
+                        reliefActive: reliefActiveCheckbox.checked 
+                    };
+
+                    const errors = [];
+                    if (isNaN(params.numTurns) || params.numTurns < 1) { errors.push('Turns to Simulate must be at least 1.'); numTurnsInput.classList.add('error-input'); }
+                    if (isNaN(params.numRuns) || params.numRuns < 1) { errors.push('Simulation Runs must be at least 1.'); numRunsInput.classList.add('error-input'); }
+                    if (isNaN(params.magicScale) || params.magicScale < -3 || params.magicScale > 3) { errors.push('Magic Scale must be between -3 and 3.'); magicScaleInput.classList.add('error-input'); }
+                    if (isNaN(params.rigorExtraPen) || params.rigorExtraPen < 0) { errors.push('Extra Penetration must be at least 0.'); rigorExtraPenInput.classList.add('error-input'); }
+                    if (isNaN(params.unitMR) || params.unitMR < 0) { errors.push('Unit MR must be at least 0.'); unitMRInput.classList.add('error-input'); }
+                    if (isNaN(params.initialFatigue) || params.initialFatigue < 0 || params.initialFatigue > 200) { errors.push('Initial Unit Fatigue must be between 0 and 200.'); initialFatigueInput.classList.add('error-input'); }
+                    if (isNaN(params.unitMaxHP) || params.unitMaxHP < 1) { errors.push('Unit Max HP must be at least 1.'); unitMaxHPInput.classList.add('error-input'); }
+                    if (isNaN(params.extraReinvig) || params.extraReinvig < 0) { errors.push('Extra Reinvig/Turn must be at least 0.'); extraReinvigInput.classList.add('error-input'); }
+
+                    if (errors.length > 0) {
+                        errorSummaryDiv.innerHTML = "Invalid Inputs:<br>- " + errors.join('<br>- ');
+                        errorSummaryDiv.style.display = 'block';
+                        resultsSummaryDiv.textContent = 'Please correct inputs.';
+                        return;
+                    }
+
+                    simulateBtn.disabled = true; simulateBtn.textContent = 'Running...';
+                    resultsSummaryDiv.textContent = "Simulating..."; 
+
+                    setTimeout(() => {
+                        try {
+                            runFullSimulation(params); 
+                        } catch (err) {
+                            errorSummaryDiv.innerHTML = 'An error occurred during simulation: ' + err.message + '<br><pre>' + err.stack + '</pre>';
+                            errorSummaryDiv.style.display = 'block';
+                            resultsSummaryDiv.textContent = 'Error during simulation.';
+                            simulateBtn.disabled = false; simulateBtn.textContent = 'Run Simulation';
+                        }
+                    }, 10);
+                });
+            } else { console.error("Simulate button not found!"); }
+            
+            resetForm(); 
+        });
+    </script>
+</body>
+</html>
