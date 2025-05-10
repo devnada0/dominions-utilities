@@ -6,14 +6,14 @@
   <title>Dominions 6 Utilities Hub</title>
   <style>
     :root {
-      --bg-color: #f8f9fa; /* Lighter, cleaner background */
+      --bg-color: #f8f9fa;
       --surface-color: #ffffff;
-      --text-color: #212529; /* Standard dark text */
-      --muted-text-color: #6c757d; /* For less prominent text */
-      --primary-color: #007bff; /* Main interactive color */
+      --text-color: #212529;
+      --muted-text-color: #6c757d;
+      --primary-color: #007bff;
       --primary-hover-color: #0056b3;
-      --border-color: #e9ecef; /* Softer border */
-      --shadow-color: rgba(0, 0, 0, 0.06); /* Softer shadow */
+      --border-color: #e9ecef;
+      --shadow-color: rgba(0, 0, 0, 0.06);
       --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
     }
 
@@ -23,13 +23,13 @@
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
-      padding: 40px 20px; /* Padding around the main container */
+      padding: 40px 20px;
     }
 
     .page-container {
-      max-width: 1100px; /* Wider container for grid */
+      max-width: 1100px; 
       margin: 0 auto;
-      padding: 0 15px; /* Padding inside container */
+      padding: 0 15px; 
     }
 
     header {
@@ -41,7 +41,7 @@
       color: var(--text-color);
       margin-top: 0;
       margin-bottom: 10px;
-      font-size: 2.5em; /* Larger main title */
+      font-size: 2.5em;
       font-weight: 600;
     }
 
@@ -49,65 +49,66 @@
       font-size: 1.2em;
       color: var(--muted-text-color);
       max-width: 700px;
-      margin: 0 auto; /* Center subtitle if it's narrower */
+      margin: 0 auto;
     }
+
+    /* Removed .utility-section and .section-title styles as they are no longer used */
 
     .utilities-grid {
       display: grid;
-      /* Responsive grid: 1 column on small, 2 on medium, 3 on large */
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 25px; /* Space between cards */
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); 
+      gap: 20px; 
       padding: 0;
-      margin: 0;
+      margin: 0; /* Ensure no extra margin for the grid itself after header */
       list-style: none;
     }
 
     .utility-card {
       background-color: var(--surface-color);
       border-radius: 8px;
-      box-shadow: 0 4px 8px var(--shadow-color);
-      padding: 25px;
+      box-shadow: 0 3px 6px var(--shadow-color); 
+      padding: 20px; 
       display: flex;
       flex-direction: column;
-      justify-content: space-between; /* Pushes button to bottom if content varies */
+      justify-content: space-between;
       transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-      text-align: left; /* Align text inside card to the left */
+      text-align: left;
     }
 
     .utility-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(-4px); 
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); 
     }
 
     .utility-card h3 {
       margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 1.4em;
-      color: var(--text-color); /* Use primary color for card titles for emphasis */
+      margin-bottom: 8px; 
+      font-size: 1.2em;  
+      color: var(--text-color);
       font-weight: 500;
     }
 
     .utility-card p {
-      font-size: 0.95em;
+      font-size: 0.875em; 
       color: var(--muted-text-color);
-      margin-bottom: 20px;
-      flex-grow: 1; /* Allows description to take available space */
+      margin-bottom: 15px; 
+      flex-grow: 1;
     }
 
     .utility-card .launch-button {
-      display: inline-block; /* Allows text-align center from parent if needed, but card is left aligned */
-      padding: 10px 20px;
+      display: inline-block;
+      padding: 8px 15px; 
       background-color: var(--primary-color);
       color: white;
       text-decoration: none;
       border-radius: 5px;
       transition: background-color 0.2s ease;
-      font-size: 0.95em;
+      font-size: 0.875em; 
       font-weight: 500;
-      text-align: center; /* Center text within the button itself */
+      text-align: center;
       border: none;
       cursor: pointer;
-      align-self: flex-start; /* Align button to the start of the card's cross axis */
+      align-self: flex-start;
     }
 
     .utility-card .launch-button:hover {
@@ -123,21 +124,20 @@
         color: var(--muted-text-color);
     }
 
-
   </style>
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>Dominions 6 Utilities</h1>
-      <div class="subtitle">A collection of calculators and simulators for Dominions 6.</div>
+      <div class="subtitle">A collection of tools for Dominions 6.</div>
     </header>
 
     <ul class="utilities-grid">
       <li class="utility-card">
-        <h3>Spell Casting Simulator</h3>
-        <p>Estimate spell sequence timings, considering modifiers, variation, and Time Stop.</p>
-        <a href="spell-casting-simulator/cast-times.html" class="launch-button">Launch Simulator</a>
+        <h3>Collision Calculator</h3>
+        <p>Simulate unit collisions by chassis HP to estimate win/loss/slip outcomes.</p>
+        <a href="collision-calculator/collision-calculator.html" class="launch-button">Launch Calculator</a>
       </li>
       <li class="utility-card">
         <h3>Communion Fatigue Calculator</h3>
@@ -145,24 +145,14 @@
         <a href="communion-fatigue-calculator/communion-fatigue-calculator.html" class="launch-button">Launch Calculator</a>
       </li>
       <li class="utility-card">
-        <h3>Preaching Calculator</h3>
-        <p>Analyze dominion point changes based on priest levels, temples, and current dominion.</p>
-        <a href="preaching-calculator/preaching-calculator.html" class="launch-button">Launch Calculator</a>
+        <h3>Earthquake Damage Simulator</h3>
+        <p>Simulate unit survivability against earthquakes with advanced armor mechanics.</p>
+        <a href="earthquake-simulator/earthquake-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
       <li class="utility-card">
-        <h3>Collision Calculator</h3>
-        <p>Simulate unit collisions by chassis HP to estimate win/loss/slip outcomes.</p>
-        <a href="collision-calculator/collision-calculator.html" class="launch-button">Launch Calculator</a>
-      </li>
-      <li class="utility-card">
-        <h3>Province Report Estimator</h3>
-        <p>Estimate actual unit counts from potentially inaccurate numerical scout reports.</p>
-        <a href="province-report-estimator/province-report-estimator.html" class="launch-button">Launch Estimator</a>
-      </li>
-      <li class="utility-card">
-        <h3>Patrol & Unrest Calculator</h3>
-        <p>Simulate patrols for stealth detection and unrest reduction effectiveness.</p>
-        <a href="patrol-calculator/patrol-calculator.html" class="launch-button">Launch Calculator</a>
+        <h3>Fire Storm Simulator</h3>
+        <p>Estimate damage and unit losses from the Fire Storm battlefield spell.</p>
+        <a href="firestorm-simulator/firestorm-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
       <li class="utility-card">
         <h3>Magic Duel Simulator</h3>
@@ -170,17 +160,40 @@
         <a href="magic-duel-simulator/magic-duel-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
       <li class="utility-card">
-        <h3>Earthquake Damage Simulator</h3>
-        <p>Simulate unit survivability against earthquakes with advanced armor mechanics.</p>
-        <a href="earthquake-simulator/earthquake-simulator.html" class="launch-button">Launch Simulator</a>
+        <h3>Patrol & Unrest Calculator</h3>
+        <p>Simulate patrols for stealth detection and unrest reduction effectiveness.</p>
+        <a href="patrol-calculator/patrol-calculator.html" class="launch-button">Launch Calculator</a>
       </li>
-      <!-- New Research Calculator Card -->
+      <li class="utility-card">
+        <h3>Preaching Calculator</h3>
+        <p>Analyze dominion point changes based on priest levels, temples, and current dominion.</p>
+        <a href="preaching-calculator/preaching-calculator.html" class="launch-button">Launch Calculator</a>
+      </li>
+      <li class="utility-card">
+        <h3>Province Report Estimator</h3>
+        <p>Estimate actual unit counts from potentially inaccurate numerical scout reports.</p>
+        <a href="province-report-estimator/province-report-estimator.html" class="launch-button">Launch Estimator</a>
+      </li>
       <li class="utility-card">
         <h3>Research Turn Calculator</h3>
         <p>Estimate turns to reach research goals considering difficulty and RP boosts.</p>
         <a href="research-calculator/research-calculator.html" class="launch-button">Launch Calculator</a>
       </li>
-      <!-- End New Research Calculator Card -->
+      <li class="utility-card">
+        <h3>Rigor Mortis Simulator</h3>
+        <p>Calculate fatigue and paralysis effects from the Rigor Mortis spell.</p>
+        <a href="rigormortis-simulator/rigormortis-simulator.html" class="launch-button">Launch Simulator</a>
+      </li>
+      <li class="utility-card">
+        <h3>Spell Casting Simulator</h3>
+        <p>Estimate spell sequence timings, considering modifiers, variation, and Time Stop.</p>
+        <a href="spell-casting-simulator/cast-times.html" class="launch-button">Launch Simulator</a>
+      </li>
+      <li class="utility-card">
+        <h3>Wrathful Skies Simulator</h3>
+        <p>Simulate damage and effects of the Wrathful Skies global enchantment.</p>
+        <a href="wrathfulskies-simulator/wrathfulskies-simulator.html" class="launch-button">Launch Simulator</a>
+      </li>
     </ul>
 
   </div> <!-- End page-container -->
