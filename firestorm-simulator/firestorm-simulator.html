@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fire Storm Simulator - Dominions 6 (v2.9.7 - Refined FR Logic)</title>
+    <title>Fire Storm Simulator - Dominions 6 (with Luck)</title>
     <style>
-        /* CSS is identical to v2.9.3 - no changes needed here */
+        /* CSS is identical to v2.9.3/v2.9.7 - no changes needed here */
         :root {
             --bg-color: #f4f6f9; 
             --surface-color: #ffffff;
@@ -118,6 +118,10 @@
                         <input type="checkbox" id="isRaining">
                         <label for="isRaining">Is it Raining? <small>(Helps extinguish fire)</small></label>
                     </div>
+                    <div class="input-group">
+                        <input type="checkbox" id="hasLuck">
+                        <label for="hasLuck">Luck? <small>(75% to nullify a killing strike's damage)</small></label>
+                    </div>
                 </div>
                 <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
                 <div class="input-group">
@@ -147,25 +151,26 @@
             <summary>Documentation & How It Works (Fire Storm)</summary>
             <div class="docs-content">
                 <h4>Purpose:</h4>
-                <p>This tool simulates the impact of the Fire Storm battlefield enchantment on a single unit over multiple turns and simulation runs. It helps estimate survivability, the frequency of direct hits, the chances of catching fire, and the effects of burning.</p>
-                <h4>How to Use (Inputs):</h4> <!-- ... (Inputs same as v2.9.3) ... -->
+                <p>This tool simulates the impact of the Fire Storm battlefield enchantment on a single unit over multiple turns and simulation runs. It helps estimate survivability, the frequency of direct hits, the chances of catching fire, and the effects of burning, including the Luck mechanic.</p>
+                <h4>How to Use (Inputs):</h4>
                 <ul>
-                    <li><strong>Unit Max HP:</strong> The starting and maximum Hit Points of the unit. (Default: 10)</li>
-                    <li><strong>Unit Armor (Protection):</strong> The unit's base armor value. (Default: 0)</li>
-                    <li><strong>Unit Fire Resistance (FR):</strong> The unit's Fire Resistance value. Can be negative for fire vulnerability. (Default: 0)</li>
-                    <li><strong>Unit Size:</strong> The size of the unit, used for calculating burning damage (e.g., Size 1 to 10). (Default: 3)</li>
-                    <li><strong>HP Gained Per Turn:</strong> Amount of HP the unit regenerates at the end of each full turn. Accepts fractional values (e.g., 0.5). (Default: 0)</li>
-                    <li><strong>Province Temperature:</strong> The temperature scale of the province, from Cold -5 (max cold) to Heat +5 (max heat). (Default: 0)</li>
-                    <li><strong>Unit is Ethereal?:</strong> If checked, the unit cannot catch fire. (Default: No)</li>
-                    <li><strong>Is it Raining?:</strong> If checked, significantly increases the chance of putting out fires. (Default: No)</li>
-                    <li><strong>Max Turns to Simulate:</strong> The maximum number of turns a single simulation run will last if the unit survives that long. (Default: 100)</li>
-                    <li><strong>SimulationRuns:</strong> Number of times to run the full simulation sequence for statistical analysis. (Default: 10000)</li>
+                    <li><strong>Unit Max HP:</strong> The starting and maximum Hit Points of the unit.</li>
+                    <li><strong>Unit Armor (Protection):</strong> The unit's base armor value.</li>
+                    <li><strong>Unit Fire Resistance (FR):</strong> The unit's Fire Resistance value. Can be negative.</li>
+                    <li><strong>Unit Size:</strong> The size of the unit (1-10), used for burning damage.</li>
+                    <li><strong>HP Gained Per Turn:</strong> HP regenerated at the end of each turn.</li>
+                    <li><strong>Province Temperature:</strong> Cold -5 to Heat +5. Affects extinguishing.</li>
+                    <li><strong>Unit is Ethereal?:</strong> If checked, cannot catch fire.</li>
+                    <li><strong>Is it Raining?:</strong> If checked, helps extinguish fire.</li>
+                    <li><strong>Luck?:</strong> If checked, unit has a 75% chance to nullify the damage from a Fire Storm hit or a burn tick that would otherwise be a killing blow. Does not prevent the "catch fire" chance from the initial hit.</li>
+                    <li><strong>Max Turns to Simulate:</strong> Maximum turns per simulation run.</li>
+                    <li><strong>Simulation Runs:</strong> Number of full simulation runs.</li>
                 </ul>
                 <h4>Mechanics Modeled:</h4>
                 <ol>
                     <li><strong>Simulation Run vs. Turn:</strong> (Standard explanation)</li>
-                    <li><strong>Fire Storm Event Timing:</strong> (Standard explanation: 23.4375 opportunities/turn)</li>
-                    <li><strong>Chance for Unit to be Hit per Opportunity:</strong> 3% chance.</li>
+                    <li><strong>Fire Storm Event Timing:</strong> ~23.44 opportunities per turn.</li>
+                    <li><strong>Chance for Unit to be Hit per Opportunity:</strong> 3%.</li>
                     <li><strong>Initial Damage Calculation (per Fire Storm Hit):</strong>
                         <ul>
                             <li>Base Damage Roll: <code>6 + DRN_1 - DRN_2</code> (fire damage). This value (before armor/FR) is also used as the base for the "catch fire" roll.</li>
@@ -174,10 +179,10 @@
                             <li><strong>Fire Resistance on Initial Hit (Two-Part):</strong>
                                 <ol style="list-style-type: lower-alpha; padding-left: 20px;">
                                     <li>The damage remaining after armor is first reduced directly by <code>Unit_FR</code>.</li>
-                                    <li>Then, an additional amount is subtracted. This amount is <code>Unit_FR * 2%</code> of the spell's original base damage component (which is 6 for Fire Storm), rounded normally (0.5 up). So, <code>Math.round(Unit_FR * 0.02 * 6)</code> or <code>Math.round(Unit_FR * 0.12)</code> is subtracted.</li>
+                                    <li>Then, an additional amount is subtracted: <code>Math.round(Unit_FR * 0.12)</code>.</li>
                                 </ol>
                             </li>
-                            <li>Final HP loss from the hit: <code>max(0, Resulting_Damage_After_All_Reductions)</code>.</li>
+                            <li>Final HP loss from hit: <code>max(0, Resulting_Damage_After_All_Reductions)</code>. This HP loss can be nullified by Luck if it's a killing blow.</li>
                         </ul>
                     </li>
                     <li><strong>Catching Fire (after a Fire Storm Hit):</strong>
@@ -185,14 +190,23 @@
                             <li>Base for roll: Uses the <code>6 + DRN_1 - DRN_2</code> result *before* armor or the hit's FR mitigation.</li>
                             <li>Chance to Catch Fire = <code>max(0, Base_For_Roll) * 4%</code>.</li>
                             <li>Cannot catch fire if <code>Unit_FR >= 10</code> or Ethereal.</li>
+                            <li>Luck does not prevent this roll, only the damage from the initial hit if applicable.</li>
                         </ul>
                     </li>
-                    <li><strong>Burning Damage (at start of turn, if on fire):</strong> (Standard explanation: d(Size)/2, FR halving if FR>=5, direct FR reduction)</li>
-                    <li><strong>Extinguishing Fire (at end of turn, if on fire):</strong> (Standard explanation: base, FR, temp, rain)</li>
-                    <li><strong>HP Regeneration:</strong> (Standard explanation: end of turn, fractional accumulation)</li>
+                    <li><strong>Burning Damage (at start of turn, if on fire):</strong>
+                        <ul>
+                            <li>Base: <code>ceil((roll d(Size))/2)</code>.</li>
+                            <li>If <code>Unit_FR >= 5</code>, base burn damage is halved (floored).</li>
+                            <li>Then, reduced directly by <code>Unit_FR</code>. Capped at 0.</li>
+                            <li>This HP loss can be nullified by Luck if it's a killing blow.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Extinguishing Fire (at end of turn, if on fire):</strong> Standard Dominions mechanics (base chance, modified by FR, province temperature, and rain).</li>
+                    <li><strong>HP Regeneration:</strong> Applied at the end of the turn, after all events. Cannot exceed Max HP. Fractional regeneration accumulates.</li>
+                    <li><strong>Luck:</strong> If enabled, grants a 75% chance to negate the HP loss from any single instance of damage (direct Fire Storm hit or burn tick) that would reduce the unit's HP to 0 or less.</li>
                 </ol>
-                <h4>Output Statistics & Graph:</h4> (Standard explanation)
-                 <h4>Limitations:</h4> (Standard explanation, ensure FR part is accurate)
+                <h4>Output Statistics & Graph:</h4> (Standard explanation of survival/death stats, hit/burn stats, and graph lines)
+                 <h4>Limitations:</h4> (Standard explanation: single unit, no morale, etc.)
             </div>
         </details>
     </div>
@@ -202,11 +216,12 @@
         const FS_TICKS_PER_TURN = 7500;
         const FS_EVENTS_PER_TURN_RAW = FS_TICKS_PER_TURN / FS_TICKS_PER_EVENT;
         const FS_HIT_CHANCE_PER_OPPORTUNITY = 0.03;
-        const FS_BASE_DAMAGE_COMPONENT = 6; // Used for the % part of FR calc on initial hit
+        const FS_BASE_DAMAGE_COMPONENT = 6; 
         const FS_CATCH_FIRE_CHANCE_MULTIPLIER = 0.04;
         const FS_EXTINGUISH_BASE_CHANCE = 0.25;
-        const FS_EXTINGUISH_MIN_CHANCE = 0.01;
+        const FS_EXTINGUISH_MIN_CHANCE = 0.01; // Minimum chance to extinguish even with penalties
         const MAX_DRN_ITERATIONS = 20;
+        const LUCK_CHANCE = 0.75; 
 
         function rollD6() { return Math.floor(Math.random() * 6) + 1; }
         function calculateDRN() { 
@@ -227,16 +242,14 @@
             const effectiveArmor = Math.floor(inputs.unitArmor / 2);
             let damageAfterArmor = initialDamageRoll - effectiveArmor;
 
-            // Apply Fire Resistance (Two-Part)
-            // Part 1: Direct subtraction
             let damageAfterDirectFR = damageAfterArmor - inputs.unitFR;
-
-            // Part 2: Percentage reduction based on spell's base component (6), then subtract this amount
-            const percentageBasedReductionAmount = Math.round(inputs.unitFR * 0.02 * FS_BASE_DAMAGE_COMPONENT); // Math.round(FR * 0.12)
+            const percentageBasedReductionAmount = Math.round(inputs.unitFR * 0.02 * FS_BASE_DAMAGE_COMPONENT); // FR * 2% of base 6 = FR * 0.12
             
-            let finalDamageToApply = Math.max(0, damageAfterDirectFR - percentageBasedReductionAmount);
+            let finalDamageToApplyPotential = Math.max(0, damageAfterDirectFR - percentageBasedReductionAmount);
             
-            const actualHpLost = Math.min(finalDamageToApply, currentHp);
+            // This is the HP that would be lost from this hit, BEFORE Luck, capped by current HP.
+            // This value is what Luck will check against if it's a killing blow.
+            const potentialHpLostThisHit = Math.min(finalDamageToApplyPotential, currentHp); 
             
             let catchesFire = false;
             if (inputs.unitFR < 10 && !inputs.isUnitEthereal && damageValueForCatchFireRoll > 0) { 
@@ -244,40 +257,51 @@
                     catchesFire = true;
                 }
             }
-            return { hpLost: actualHpLost, caughtFireThisHit: catchesFire };
+            // hpLost returned is the *potential* HP loss before Luck is applied by the calling function.
+            // The calling function will then apply Luck if necessary.
+            return { hpLost: potentialHpLostThisHit, caughtFireThisHit: catchesFire, rawPotentialDamage: finalDamageToApplyPotential };
         }
         
-        // simulateOneFullRun_FireStorm (from v2.9.3 - this function was already correct based on the logic)
-        // startFireStormSimulation (from v2.9.3 - this function was already correct)
-        // drawSurvivalGraph (from v2.8.3 - graph visuals)
-        // Element.prototype.setAttributes (helper)
-        // (Copying the full JS functions from v2.9.3 as they should now work with the corrected calculateFireStormInitialDamageAndCatchFire)
         function simulateOneFullRun_FireStorm(inputs) {
             let currentHp = inputs.unitMaxHp;
             let turnsCompletedThisRun = 0; 
-            let totalFireStormHits = 0;
-            let totalInitialHPLost = 0; 
+            let totalFireStormHits = 0; // Number of times Fire Storm *targets* the unit
+            let totalInitialHPLostFromFireStorm = 0; // HP lost from direct FS hits, after Luck
+            let sumOfNonLuckedFireStormDamagePotential = 0; // Sum of potential damage (after FR/armor) for hits that weren't Lucked
+            let countOfNonLuckedFireStormHitsThatDidDamage = 0; // Count for the above sum
+
             let timesCaughtFireEvent = 0; 
-            let totalBurningHPLost = 0;   
+            let totalBurningHPLost = 0;   // HP lost from burning, after Luck
             let turnsSpentOnFire = 0;      
             let died = false;
             let isOnFire = false; 
             let eventOpportunitiesAccumulator = 0;
             let hpRegenAccumulator = 0;
+            let totalLuckSavesInRun = 0;
 
             for (let t = 0; t < inputs.maxTurns; t++) { 
+                // --- Burning Damage (Start of Turn) ---
                 if (isOnFire) {
                     turnsSpentOnFire++;
-                    let burnDmgRoll = Math.floor(Math.random() * inputs.unitSize) + 1;
-                    let baseBurnDmg = Math.ceil(burnDmgRoll / 2);
-                    if (inputs.unitFR >= 5) { baseBurnDmg = Math.floor(baseBurnDmg / 2); }
-                    const finalBurnDmg = Math.max(0, baseBurnDmg - inputs.unitFR); 
-                    const actualBurnHpLoss = Math.min(finalBurnDmg, currentHp);
+                    let burnDmgRoll = Math.floor(Math.random() * inputs.unitSize) + 1; // d(Size)
+                    let baseBurnDmg = Math.ceil(burnDmgRoll / 2); // d(Size)/2, rounded up
+                    if (inputs.unitFR >= 5) { baseBurnDmg = Math.floor(baseBurnDmg / 2); } // Halved if FR >= 5
+                    const finalBurnDmgPotential = Math.max(0, baseBurnDmg - inputs.unitFR); // Then reduced by FR
+                    
+                    let actualBurnHpLoss = Math.min(finalBurnDmgPotential, currentHp);
+
+                    if (inputs.hasLuck && currentHp > 0 && (currentHp - actualBurnHpLoss <= 0) && actualBurnHpLoss > 0) {
+                        if (Math.random() < LUCK_CHANCE) {
+                            actualBurnHpLoss = 0; // Damage nullified by Luck
+                            totalLuckSavesInRun++;
+                        }
+                    }
                     currentHp -= actualBurnHpLoss;
                     totalBurningHPLost += actualBurnHpLoss;
                     if (currentHp <= 0) { died = true; turnsCompletedThisRun = t; break; }
                 }
 
+                // --- Fire Storm Hits (During Turn) ---
                 eventOpportunitiesAccumulator += FS_EVENTS_PER_TURN_RAW;
                 const eventsToProcessThisTurn = Math.floor(eventOpportunitiesAccumulator);
                 eventOpportunitiesAccumulator -= eventsToProcessThisTurn;
@@ -289,22 +313,44 @@
                     if (Math.random() < FS_HIT_CHANCE_PER_OPPORTUNITY) {
                         totalFireStormHits++;
                         const hitOutcome = calculateFireStormInitialDamageAndCatchFire(inputs, currentHp);
-                        currentHp -= hitOutcome.hpLost;
-                        totalInitialHPLost += hitOutcome.hpLost;
+                        let damageToApplyFromHit = hitOutcome.hpLost; // Potential HP lost from this hit, capped by current HP
+
+                        let wasLucked = false;
+                        if (inputs.hasLuck && currentHp > 0 && (currentHp - damageToApplyFromHit <= 0) && damageToApplyFromHit > 0) {
+                            if (Math.random() < LUCK_CHANCE) {
+                                damageToApplyFromHit = 0; // Damage nullified by Luck
+                                totalLuckSavesInRun++;
+                                wasLucked = true;
+                            }
+                        }
+                        currentHp -= damageToApplyFromHit;
+                        totalInitialHPLostFromFireStorm += damageToApplyFromHit;
+
+                        if (!wasLucked && hitOutcome.rawPotentialDamage > 0) {
+                            sumOfNonLuckedFireStormDamagePotential += hitOutcome.rawPotentialDamage;
+                            countOfNonLuckedFireStormHitsThatDidDamage++;
+                        }
+
                         if (currentHp <= 0) { died = true; turnsCompletedThisRun = t; break; }
-                        if (hitOutcome.caughtFireThisHit && !isOnFire) { isOnFire = true; timesCaughtFireEvent++; }
+                        
+                        if (hitOutcome.caughtFireThisHit && !isOnFire) { 
+                            isOnFire = true; 
+                            timesCaughtFireEvent++; 
+                        }
                     }
                 }
                 if (died) break; 
 
+                // --- Extinguishing Fire (End of Turn) ---
                 if (isOnFire) {
                     let extinguishChance = FS_EXTINGUISH_BASE_CHANCE + (inputs.unitFR * 0.01) + 
                                          ((inputs.provinceTemperature <= 0 ? Math.abs(inputs.provinceTemperature) : -inputs.provinceTemperature) * 0.05) +
-                                         (inputs.isRaining ? 1.00 : 0);
+                                         (inputs.isRaining ? 1.00 : 0); 
                     extinguishChance = Math.min(1.0, Math.max(FS_EXTINGUISH_MIN_CHANCE, extinguishChance));
                     if (Math.random() < extinguishChance) { isOnFire = false; }
                 }
 
+                // --- HP Regeneration (End of Turn) ---
                 if (inputs.hpRegenPerTurnFloat > 0) {
                     hpRegenAccumulator += inputs.hpRegenPerTurnFloat;
                     const actualHpToRegen = Math.floor(hpRegenAccumulator);
@@ -317,101 +363,176 @@
                 if (currentHp <= 0 && !died) { died = true; turnsCompletedThisRun = t; break;}
                 turnsCompletedThisRun = t + 1;
             }
-            return { numTurnsCompleted: died ? turnsCompletedThisRun : inputs.maxTurns, died: died, turnOfDeath: died ? turnsCompletedThisRun : -1, totalFireStormHits, totalInitialHPLost, timesCaughtFireEvent, totalBurningHPLost, turnsSpentOnFire };
+            return { 
+                numTurnsCompleted: died ? turnsCompletedThisRun : inputs.maxTurns, 
+                died: died, 
+                turnOfDeath: died ? turnsCompletedThisRun : -1, 
+                totalFireStormHits, 
+                totalInitialHPLostFromFireStorm, 
+                sumOfNonLuckedFireStormDamagePotential,
+                countOfNonLuckedFireStormHitsThatDidDamage,
+                timesCaughtFireEvent, 
+                totalBurningHPLost, 
+                turnsSpentOnFire,
+                totalLuckSaves: totalLuckSavesInRun
+            };
         }
+
         function startFireStormSimulation() {
             document.querySelectorAll('.input-panel input[type="number"], .input-panel select').forEach(input => input.style.borderColor = '');
-            const simInputs = {};
-            let isValid = true; let errorMessages = [];
+            
+            let isValid = true; 
+            let errorMessages = [];
+            const simInputs = {}; // Will be populated only if all inputs are valid
+
+            // --- Phase 1: Validate all inputs ---
             const inputConfigs = [
                 { id: 'unitMaxHp', parse: parseInt, min: 1, prettyName: "Unit Max HP" },
                 { id: 'unitArmor', parse: parseInt, min: 0, prettyName: "Unit Armor" },
                 { id: 'unitFR', parse: parseInt, min: -Infinity, prettyName: "Unit Fire Resistance" },
                 { id: 'unitSize', parse: parseInt, min: 1, max: 10, prettyName: "Unit Size" },
-                { id: 'hpRegenPerTurn', parse: parseFloat, min: 0, keyName: 'hpRegenPerTurnFloat', prettyName: "HP Gained Per Turn" },
+                { id: 'hpRegenPerTurn', parse: parseFloat, min: 0, prettyName: "HP Gained Per Turn" },
                 { id: 'provinceTemperature', parse: parseInt, min: -5, max: 5, prettyName: "Province Temperature" },
-                { id: 'maxTurnsToSimulate', parse: parseInt, min: 1, keyName: 'maxTurns', prettyName: "Max Turns to Simulate" },
-                { id: 'simulationRuns', parse: parseInt, min: 1, keyName: 'numRuns', prettyName: "Simulation Runs" }
+                { id: 'maxTurnsToSimulate', parse: parseInt, min: 1, prettyName: "Max Turns to Simulate" },
+                { id: 'simulationRuns', parse: parseInt, min: 1, prettyName: "Simulation Runs" }
             ];
+
             inputConfigs.forEach(config => {
                 const element = document.getElementById(config.id);
-                if (!element) { isValid = false; errorMessages.push(`Critical error: Element ID '${config.id}' not found.`); return; }
-                const valueStr = element.value; const parsedValue = config.parse(valueStr);
-                const keyToStore = config.keyName || config.id;
-                if (valueStr === "" || isNaN(parsedValue)) { isValid = false; errorMessages.push(`${config.prettyName} must be a valid number.`); element.style.borderColor = 'red';
-                } else {
-                    if (config.min !== undefined && parsedValue < config.min) { isValid = false; errorMessages.push(`${config.prettyName} must be >= ${config.min}.`); element.style.borderColor = 'red';}
-                    if (config.max !== undefined && parsedValue > config.max) { isValid = false; errorMessages.push(`${config.prettyName} must be <= ${config.max}.`); element.style.borderColor = 'red';}
+                if (!element) {
+                    isValid = false; errorMessages.push(`DEV ERROR: Input element '${config.id}' not found in HTML.`); return;
                 }
-                simInputs[keyToStore] = parsedValue;
+                const valueStr = element.value;
+                const parsedValue = config.parse(valueStr);
+
+                if (valueStr === "" || isNaN(parsedValue)) {
+                    isValid = false; errorMessages.push(`${config.prettyName} must be a valid number.`); element.style.borderColor = 'red';
+                } else {
+                    if (config.min !== undefined && parsedValue < config.min) {
+                        isValid = false; errorMessages.push(`${config.prettyName} must be >= ${config.min}.`); element.style.borderColor = 'red';
+                    }
+                    if (config.max !== undefined && parsedValue > config.max) {
+                        isValid = false; errorMessages.push(`${config.prettyName} must be <= ${config.max}.`); element.style.borderColor = 'red';
+                    }
+                }
             });
-            simInputs.isUnitEthereal = document.getElementById('isUnitEthereal') ? document.getElementById('isUnitEthereal').checked : false;
-            simInputs.isRaining = document.getElementById('isRaining') ? document.getElementById('isRaining').checked : false;
-            if(!document.getElementById('isUnitEthereal')) { isValid = false; errorMessages.push("Element 'isUnitEthereal' not found.");}
-            if(!document.getElementById('isRaining')) { isValid = false; errorMessages.push("Element 'isRaining' not found.");}
+
+            // Validate existence of checkbox elements
+            if(!document.getElementById('isUnitEthereal')) { isValid = false; errorMessages.push("DEV ERROR: Checkbox 'isUnitEthereal' not found.");}
+            if(!document.getElementById('isRaining')) { isValid = false; errorMessages.push("DEV ERROR: Checkbox 'isRaining' not found.");}
+            if(!document.getElementById('hasLuck')) { isValid = false; errorMessages.push("DEV ERROR: Checkbox 'hasLuck' not found.");}
 
             const resultsDiv = document.getElementById('results'); 
             const svgGraphElement = document.getElementById('survivalGraphSvg');
-            if (!isValid) { resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Input errors:<br>- ${errorMessages.join('<br>- ')}</p>`; svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>'; return; }
+
+            if (!isValid) { 
+                resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Input errors:<br>- ${errorMessages.join('<br>- ')}</p>`; 
+                svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>'; 
+                return; 
+            }
+
+            // --- Phase 2: If all valid, parse and store inputs ---
+            simInputs.unitMaxHp = parseInt(document.getElementById('unitMaxHp').value);
+            simInputs.unitArmor = parseInt(document.getElementById('unitArmor').value);
+            simInputs.unitFR = parseInt(document.getElementById('unitFR').value);
+            simInputs.unitSize = parseInt(document.getElementById('unitSize').value);
+            simInputs.hpRegenPerTurnFloat = parseFloat(document.getElementById('hpRegenPerTurn').value);
+            simInputs.provinceTemperature = parseInt(document.getElementById('provinceTemperature').value);
+            simInputs.maxTurns = parseInt(document.getElementById('maxTurnsToSimulate').value);
+            simInputs.numRuns = parseInt(document.getElementById('simulationRuns').value);
+            simInputs.isUnitEthereal = document.getElementById('isUnitEthereal').checked;
+            simInputs.isRaining = document.getElementById('isRaining').checked;
+            simInputs.hasLuck = document.getElementById('hasLuck').checked;
             
             resultsDiv.innerHTML = "<p style='padding:10px;'>Running Fire Storm simulation, please wait...</p>"; 
             svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Generating graph...</text>';
             document.querySelector('.action-button').disabled = true;
-            try {
-                let sumOfCompletedTurnsStat = 0; let deathCount = 0;
-                let totalFireStormHitsSum = 0; let totalInitialHPLostSum = 0;
-                let totalTimesCaughtFireEventSum = 0; let totalBurningHPLostSum = 0;
-                let totalTurnsSpentOnFireSum = 0;
-                let deathsAtTurnT_array = new Array(simInputs.maxTurns).fill(0);
-                let allNumCompletedTurns = []; 
-                let runsWhereUnitCaughtFireAtLeastOnce = 0;
-                for (let i = 0; i < simInputs.numRuns; i++) {
-                    const runResult = simulateOneFullRun_FireStorm(simInputs);
-                    allNumCompletedTurns.push(runResult.numTurnsCompleted);
-                    sumOfCompletedTurnsStat += runResult.numTurnsCompleted;
-                    if (runResult.died) { deathCount++; if (runResult.turnOfDeath >= 0 && runResult.turnOfDeath < simInputs.maxTurns) { deathsAtTurnT_array[runResult.turnOfDeath]++; }}
-                    totalFireStormHitsSum += runResult.totalFireStormHits;
-                    totalInitialHPLostSum += runResult.totalInitialHPLost;
-                    if (runResult.timesCaughtFireEvent > 0) { runsWhereUnitCaughtFireAtLeastOnce++; }
-                    totalTimesCaughtFireEventSum += runResult.timesCaughtFireEvent;
-                    totalBurningHPLostSum += runResult.totalBurningHPLost;
-                    totalTurnsSpentOnFireSum += runResult.turnsSpentOnFire;
+            
+            setTimeout(() => {
+                try {
+                    let sumOfCompletedTurnsStat = 0; let deathCount = 0;
+                    let totalFireStormHitsSum = 0; let totalInitialHPLostFromFireStormSum = 0;
+                    let sumOfNonLuckedFireStormDamagePotentialOverall = 0;
+                    let countOfNonLuckedFireStormHitsThatDidDamageOverall = 0;
+
+                    let totalTimesCaughtFireEventSum = 0; let totalBurningHPLostSum = 0;
+                    let totalTurnsSpentOnFireSum = 0;
+                    let totalLuckSavesSum = 0; 
+                    let deathsAtTurnT_array = new Array(simInputs.maxTurns).fill(0);
+                    let allNumCompletedTurns = []; 
+                    let runsWhereUnitCaughtFireAtLeastOnce = 0;
+
+                    for (let i = 0; i < simInputs.numRuns; i++) {
+                        const runResult = simulateOneFullRun_FireStorm(simInputs); 
+                        allNumCompletedTurns.push(runResult.numTurnsCompleted);
+                        sumOfCompletedTurnsStat += runResult.numTurnsCompleted;
+                        if (runResult.died) { deathCount++; if (runResult.turnOfDeath >= 0 && runResult.turnOfDeath < simInputs.maxTurns) { deathsAtTurnT_array[runResult.turnOfDeath]++; }}
+                        totalFireStormHitsSum += runResult.totalFireStormHits;
+                        totalInitialHPLostFromFireStormSum += runResult.totalInitialHPLostFromFireStorm;
+                        sumOfNonLuckedFireStormDamagePotentialOverall += runResult.sumOfNonLuckedFireStormDamagePotential;
+                        countOfNonLuckedFireStormHitsThatDidDamageOverall += runResult.countOfNonLuckedFireStormHitsThatDidDamage;
+
+                        if (runResult.timesCaughtFireEvent > 0) { runsWhereUnitCaughtFireAtLeastOnce++; }
+                        totalTimesCaughtFireEventSum += runResult.timesCaughtFireEvent;
+                        totalBurningHPLostSum += runResult.totalBurningHPLost;
+                        totalTurnsSpentOnFireSum += runResult.turnsSpentOnFire;
+                        totalLuckSavesSum += runResult.totalLuckSaves; 
+                    }
+
+                    const avgSurvivalLength = sumOfCompletedTurnsStat / simInputs.numRuns;
+                    const deathPercentage = (deathCount / simInputs.numRuns) * 100;
+                    let stdDevSurvivalLength = 0;
+                    if (simInputs.numRuns > 1) { let sumSqDiff = allNumCompletedTurns.reduce((acc, len) => acc + Math.pow(len - avgSurvivalLength, 2), 0); stdDevSurvivalLength = Math.sqrt(sumSqDiff / simInputs.numRuns); }
+                    const survivalPlus1Std = avgSurvivalLength + stdDevSurvivalLength; const survivalMinus1Std = Math.max(0, avgSurvivalLength - stdDevSurvivalLength);
+                    const survivalPlus2Std = avgSurvivalLength + (2 * stdDevSurvivalLength); const survivalMinus2Std = Math.max(0, avgSurvivalLength - (2 * stdDevSurvivalLength));
+                    
+                    const avgHitsPerRun = totalFireStormHitsSum / simInputs.numRuns;
+                    // Avg HP Lost per FS Hit now considers actual HP lost after luck.
+                    // To get avg *potential* damage of non-lucked hits:
+                    const avgPotentialDamagePerNonLuckedFSGroupingHit = countOfNonLuckedFireStormHitsThatDidDamageOverall > 0 ? sumOfNonLuckedFireStormDamagePotentialOverall / countOfNonLuckedFireStormHitsThatDidDamageOverall : 0;
+                    
+                    const percRunsUnitCaughtFire = (runsWhereUnitCaughtFireAtLeastOnce / simInputs.numRuns) * 100;
+                    const avgTimesCaughtFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTimesCaughtFireEventSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
+                    const avgBurningHPLost_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalBurningHPLostSum / runsWhereUnitCaughtFireAtLeastOnce : 0; 
+                    const avgTurnsOnFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTurnsSpentOnFireSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
+                    const avgLuckSavesPerRun = totalLuckSavesSum / simInputs.numRuns;
+
+                    let outputHTML = `<div class="stat-group"><h4>Overall Statistics (per Run)</h4>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Total Runs:</span><span class="stat-value">${simInputs.numRuns}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Died in Runs:</span><span class="stat-value">${deathCount} (${deathPercentage.toFixed(1)}%)</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Survival (completed turns):</span><span class="stat-value">${avgSurvivalLength.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Std. Dev. of Survival:</span><span class="stat-value">${stdDevSurvivalLength.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">    ±1 Std Dev Range:</span><span class="stat-value">${survivalMinus1Std.toFixed(2)} - ${survivalPlus1Std.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">    ±2 Std Dev Range:</span><span class="stat-value">${survivalMinus2Std.toFixed(2)} - ${survivalPlus2Std.toFixed(2)}</span></div>`;
+                    if (simInputs.hasLuck) {
+                        outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Luck Saves (damage nullified):</span><span class="stat-value">${avgLuckSavesPerRun.toFixed(2)}</span></div>`;
+                    }
+                    outputHTML += `</div>`;
+
+                    outputHTML += `<div class="stat-group"><h4>Fire Storm Hit Statistics</h4>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Fire Storm Hits / Run:</span><span class="stat-value">${avgHitsPerRun.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Potential Damage / Non-Lucked Grouping Hit:</span><span class="stat-value">${avgPotentialDamagePerNonLuckedFSGroupingHit.toFixed(2)}</span></div></div>`;
+                    
+                    outputHTML += `<div class="stat-group"><h4>Burning Statistics</h4>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Runs Unit Caught Fire:</span><span class="stat-value">${runsWhereUnitCaughtFireAtLeastOnce} (${percRunsUnitCaughtFire.toFixed(1)}%)</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Times Caught Fire (if ever caught):</span><span class="stat-value">${avgTimesCaughtFire_IfEverCaught.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Total Burning HP Lost (if ever caught):</span><span class="stat-value">${avgBurningHPLost_IfEverCaught.toFixed(2)}</span></div>`; // This is actual HP lost
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Turns Spent Burning (if ever caught):</span><span class="stat-value">${avgTurnsOnFire_IfEverCaught.toFixed(2)}</span></div></div>`;
+                    resultsDiv.innerHTML = outputHTML;
+
+                    let probDyingInTurnT_graphData = deathsAtTurnT_array.map(d => (d / simInputs.numRuns) * 100);
+                    let cumulativeProbDeadByTurnT_graphData = [];
+                    let cumulativeDeaths = 0;
+                    for (let deathsInT of deathsAtTurnT_array) { cumulativeDeaths += deathsInT; cumulativeProbDeadByTurnT_graphData.push((cumulativeDeaths / simInputs.numRuns) * 100); }
+                    drawSurvivalGraph(svgGraphElement, simInputs.maxTurns, probDyingInTurnT_graphData, cumulativeProbDeadByTurnT_graphData);
+                } catch (error) { 
+                    resultsDiv.innerHTML = `<p style="color:red; padding:10px;">Sim Error: ${error.message}</p><pre>${error.stack}</pre>`; 
+                    svgGraphElement.innerHTML = `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>`; 
+                    console.error("Fire Storm Sim error:", error);
+                } finally { 
+                    document.querySelector('.action-button').disabled = false; 
                 }
-                const avgSurvivalLength = sumOfCompletedTurnsStat / simInputs.numRuns;
-                const deathPercentage = (deathCount / simInputs.numRuns) * 100;
-                let stdDevSurvivalLength = 0;
-                if (simInputs.numRuns > 1) { let sumSqDiff = allNumCompletedTurns.reduce((acc, len) => acc + Math.pow(len - avgSurvivalLength, 2), 0); stdDevSurvivalLength = Math.sqrt(sumSqDiff / simInputs.numRuns); }
-                const survivalPlus1Std = avgSurvivalLength + stdDevSurvivalLength; const survivalMinus1Std = Math.max(0, avgSurvivalLength - stdDevSurvivalLength);
-                const survivalPlus2Std = avgSurvivalLength + (2 * stdDevSurvivalLength); const survivalMinus2Std = Math.max(0, avgSurvivalLength - (2 * stdDevSurvivalLength));
-                const avgHitsPerRun = totalFireStormHitsSum / simInputs.numRuns;
-                const avgInitialHPLostPerFireStormHit = totalFireStormHitsSum > 0 ? totalInitialHPLostSum / totalFireStormHitsSum : 0;
-                const percRunsUnitCaughtFire = (runsWhereUnitCaughtFireAtLeastOnce / simInputs.numRuns) * 100;
-                const avgTimesCaughtFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTimesCaughtFireEventSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
-                const avgBurningHPLost_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalBurningHPLostSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
-                const avgTurnsOnFire_IfEverCaught = runsWhereUnitCaughtFireAtLeastOnce > 0 ? totalTurnsSpentOnFireSum / runsWhereUnitCaughtFireAtLeastOnce : 0;
-                let outputHTML = `<div class="stat-group"><h4>Overall Statistics (per Run)</h4>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Total Runs:</span><span class="stat-value">${simInputs.numRuns}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Died in Runs:</span><span class="stat-value">${deathCount} (${deathPercentage.toFixed(1)}%)</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Survival (completed turns):</span><span class="stat-value">${avgSurvivalLength.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Std. Dev. of Survival:</span><span class="stat-value">${stdDevSurvivalLength.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">    ±1 Std Dev Range:</span><span class="stat-value">${survivalMinus1Std.toFixed(2)} - ${survivalPlus1Std.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">    ±2 Std Dev Range:</span><span class="stat-value">${survivalMinus2Std.toFixed(2)} - ${survivalPlus2Std.toFixed(2)}</span></div></div>`;
-                outputHTML += `<div class="stat-group"><h4>Fire Storm Hit Statistics</h4>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Fire Storm Hits / Run:</span><span class="stat-value">${avgHitsPerRun.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. HP Lost / Fire Storm Hit:</span><span class="stat-value">${avgInitialHPLostPerFireStormHit.toFixed(2)}</span></div></div>`;
-                outputHTML += `<div class="stat-group"><h4>Burning Statistics</h4>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Runs Unit Caught Fire:</span><span class="stat-value">${runsWhereUnitCaughtFireAtLeastOnce} (${percRunsUnitCaughtFire.toFixed(1)}%)</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Times Caught Fire (if ever caught):</span><span class="stat-value">${avgTimesCaughtFire_IfEverCaught.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Total Burning HP Lost (if ever caught):</span><span class="stat-value">${avgBurningHPLost_IfEverCaught.toFixed(2)}</span></div>`;
-                outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Turns Spent Burning (if ever caught):</span><span class="stat-value">${avgTurnsOnFire_IfEverCaught.toFixed(2)}</span></div></div>`;
-                resultsDiv.innerHTML = outputHTML;
-                let probDyingInTurnT_graphData = deathsAtTurnT_array.map(d => (d / simInputs.numRuns) * 100);
-                let cumulativeProbDeadByTurnT_graphData = [];
-                let cumulativeDeaths = 0;
-                for (let deathsInT of deathsAtTurnT_array) { cumulativeDeaths += deathsInT; cumulativeProbDeadByTurnT_graphData.push((cumulativeDeaths / simInputs.numRuns) * 100); }
-                drawSurvivalGraph(svgGraphElement, simInputs.maxTurns, probDyingInTurnT_graphData, cumulativeProbDeadByTurnT_graphData);
-            } catch (error) { resultsDiv.innerHTML = `<p style="color:red; padding:10px;">Sim Error: ${error.message}</p><pre>${error.stack}</pre>`; svgGraphElement.innerHTML = `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>`; console.error("Fire Storm Sim error:", error);
-            } finally { document.querySelector('.action-button').disabled = false; }
+            }, 10);
         }
         function drawSurvivalGraph(svgElement, maxTurnsToGraph, probDyingInTurnT_data, cumulativeProbDeadByTurnT_data) {
             svgElement.innerHTML = ''; 
