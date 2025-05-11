@@ -52,14 +52,12 @@
       margin: 0 auto;
     }
 
-    /* Removed .utility-section and .section-title styles as they are no longer used */
-
     .utilities-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); 
       gap: 20px; 
       padding: 0;
-      margin: 0; /* Ensure no extra margin for the grid itself after header */
+      margin: 0; 
       list-style: none;
     }
 
@@ -130,7 +128,7 @@
   <div class="page-container">
     <header>
       <h1>Dominions 6 Utilities</h1>
-      <div class="subtitle">A collection of tools for Dominions 6.</div>
+      <div class="subtitle">A collection of simulators for Dominions 6.</div>
     </header>
 
     <ul class="utilities-grid">
@@ -154,6 +152,13 @@
         <p>Estimate damage and unit losses from the Fire Storm battlefield spell.</p>
         <a href="firestorm-simulator/firestorm-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
+      <!-- New Card: Flames From The Sky Simulator -->
+      <li class="utility-card">
+        <h3>Flames From The Sky Simulator</h3>
+        <p>Simulate damage and area of effect for the Flames From The Sky spell.</p>
+        <a href="flamesfromthesky-simulator/flamesfromthesky-simulator.html" class="launch-button">Launch Simulator</a>
+      </li>
+      <!-- End New Card -->
       <li class="utility-card">
         <h3>Magic Duel Simulator</h3>
         <p>Simulate one-round magic duels to estimate win rates and caster losses.</p>
@@ -195,6 +200,10 @@
         <a href="wrathfulskies-simulator/wrathfulskies-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
     </ul>
+
+    <footer>
+        <p>© 2024 Dominions 6 Utilities Hub. Content and tools are community-driven.</p>
+    </footer>
 
   </div> <!-- End page-container -->
 </body>
