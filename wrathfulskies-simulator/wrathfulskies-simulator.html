@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wrathful Skies Simulator - Dominions 6 (v2.8.3)</title>
+    <title>Wrathful Skies Simulator - Dominions 6 (v2.8.5)</title>
     <style>
         :root {
             --bg-color: #f4f6f9; 
@@ -60,9 +60,8 @@
         }
         .graph-grid-line { 
             fill: none; 
-            stroke: var(--graph-internal-grid-color); /* Using new, more visible color */
-            stroke-width: 0.5px; /* Solid and thin for subtlety */
-            /* stroke-dasharray: 2,2; Removed for solid lines */
+            stroke: var(--graph-internal-grid-color); 
+            stroke-width: 0.5px; 
             shape-rendering: crispEdges; 
         }
         .graph-axis text { font-size: 10px; fill: var(--muted-text-color); }
@@ -70,11 +69,11 @@
         .graph-line.line1 { stroke: var(--graph-line1-color); }
         .graph-line.line2 { stroke: var(--graph-line2-color); }
         .graph-legend { font-size: 0.9em; margin-top: 15px; text-align: center;}
-        /* ... (Rest of styles same as v2.8.2) ... */
+        .legend-item { display: inline-block; margin-right: 20px; }
+        .legend-color-box { display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: middle; border: 1px solid var(--border-color); }
     </style>
 </head>
 <body>
-    <!-- ... (HTML structure same as v2.8.2, including input panel, output panel, graph container, details) ... -->
     <div class="simulator-container">
         <header><h1>Wrathful Skies Simulator</h1></header>
         <div class="main-content">
@@ -106,6 +105,10 @@
                         <input type="checkbox" id="stormActive" checked>
                         <label for="stormActive">Storm Spell Active? <small>(Doubles strike area)</small></label>
                     </div>
+                    <div class="input-group">
+                        <input type="checkbox" id="hasLuck">
+                        <label for="hasLuck">Luck? <small>(75% to nullify a killing strike's damage)</small></label>
+                    </div>
                 </div>
                 <button class="action-button" onclick="startWrathfulSkiesSimulation()">Run Simulation</button>
             </div>
@@ -126,16 +129,24 @@
             <summary>Documentation & How It Works</summary>
             <div class="docs-content">
                  <!-- ... (documentation content same as before) ... -->
+                 <p><strong>New in v2.8.5:</strong></p>
+                 <ul>
+                    <li>Changed "Luck" behavior: If enabled, the unit has a 75% chance to nullify the *damage* from a Wrathful Skies strike that would have been a killing blow. The stun effect from such a hit (if any) still applies. Luck can trigger multiple times in a run.</li>
+                 </ul>
+                 <p><strong>New in v2.8.4:</strong></p>
+                 <ul>
+                    <li>Added a "Luck" option. If enabled, the unit has a 75% chance to completely nullify a Wrathful Skies strike that would have otherwise been a killing blow. This includes negating the damage and any potential stun from that specific strike. Luck can trigger multiple times in a run.</li>
+                 </ul>
             </div>
         </details>
     </div>
     <script>
-        // Constants and core simulation logic functions (calculateDRN, etc.) same as v2.8.2
         const TICKS_PER_WRATHFUL_SKIES_EVENT = 320; const TICKS_PER_TURN = 7500;
         const EVENTS_PER_TURN_RAW = TICKS_PER_TURN / TICKS_PER_WRATHFUL_SKIES_EVENT;
         const BASE_HIT_CHANCE_PER_EVENT_OPPORTUNITY = 0.003; const STORM_HIT_CHANCE_PER_EVENT_OPPORTUNITY = 0.006;
         const WRATHFUL_SKIES_BASE_DAMAGE_COMPONENT = 15;
         const STUN_CHANCE_BASE = 0.05; const MAX_DRN_ITERATIONS = 20;
+        const LUCK_CHANCE = 0.75;
 
         function rollD6() { return Math.floor(Math.random() * 6) + 1; }
         function calculateDRN() { 
@@ -150,46 +161,97 @@
             const DRN1 = calculateDRN(); const DRN2 = calculateDRN();
             const rawDamagePreSR = WRATHFUL_SKIES_BASE_DAMAGE_COMPONENT + DRN1 - DRN2;
             const totalSRReduction = unitSR * 1.3; 
-            const damageAfterSRForAvg = Math.max(0, rawDamagePreSR - totalSRReduction);
-            const actualHpLost = Math.min(damageAfterSRForAvg, currentUnitHp); 
+            const damageAfterSRForAvg = Math.max(0, rawDamagePreSR - totalSRReduction); // Potential damage after SR
+            const actualHpLost = Math.min(damageAfterSRForAvg, currentUnitHp); // HP that would be lost, capped by current HP
+            
             let stunned = false;
-            if (actualHpLost > 0 && unitMaxHp > 0) {
-                const stunChance = STUN_CHANCE_BASE + (actualHpLost / unitMaxHp) / 2;
+            // Stun chance is based on damageAfterSRForAvg (potential damage if unit had infinite HP),
+            // but only if some HP would actually be lost (actualHpLost > 0).
+            // This interpretation ensures stun reflects the "severity" of the hit before Luck.
+            if (damageAfterSRForAvg > 0 && unitMaxHp > 0) { // Check potential damage for stun severity
+                const stunChance = STUN_CHANCE_BASE + (damageAfterSRForAvg / unitMaxHp) / 2; 
                 if (Math.random() < stunChance) stunned = true;
             }
+            // If actualHpLost is 0 (e.g. damageAfterSRForAvg was 0, or currentUnitHp was 0), it definitely shouldn't stun.
+            if (actualHpLost <= 0) stunned = false;
+
             return { actualHpLost, stunned, damageAfterSRForAvg };
         }
-        function simulateTurnEvents(currentHp, unitMaxHp, unitSR, stormActive, numEventOpportunitiesThisTurn) {
-            let hpAfterEvents = currentHp; let wsHitsThisTurn = 0; let stunsThisTurn = 0;
+
+        function simulateTurnEvents(currentHp, unitMaxHp, unitSR, stormActive, numEventOpportunitiesThisTurn, hasLuck) {
+            let hpAfterEvents = currentHp;
+            let wsHitsThisTurn = 0; 
+            let stunsThisTurn = 0;
             let allHitDamageValuesThisTurn = []; 
+            let luckSavesThisTurn = 0;
+
             const effectiveHitChance = stormActive ? STORM_HIT_CHANCE_PER_EVENT_OPPORTUNITY : BASE_HIT_CHANCE_PER_EVENT_OPPORTUNITY;
+
             for (let i = 0; i < numEventOpportunitiesThisTurn; i++) {
                 if (hpAfterEvents <= 0) break; 
+
                 if (Math.random() < effectiveHitChance) { 
                     wsHitsThisTurn++;
                     const outcome = calculateWrathfulSkiesHitOutcome(unitSR, hpAfterEvents, unitMaxHp);
-                    allHitDamageValuesThisTurn.push(outcome.damageAfterSRForAvg); 
-                    if (outcome.actualHpLost > 0) hpAfterEvents -= outcome.actualHpLost;
-                    if (outcome.stunned) stunsThisTurn++;
+                    
+                    let damageToApply = outcome.actualHpLost;
+                    let wasStunnedByThisHit = outcome.stunned; // Stun is determined before Luck
+                    let hitWasNullifiedByLuck = false;
+
+                    // Check for Luck activation if it's a killing blow
+                    if (hasLuck && hpAfterEvents > 0 && (hpAfterEvents - damageToApply <= 0) && damageToApply > 0) {
+                        if (Math.random() < LUCK_CHANCE) { // 75% chance for Luck
+                            damageToApply = 0;     // Nullify damage
+                            // wasStunnedByThisHit remains as calculated by outcome.stunned
+                            luckSavesThisTurn++;
+                            hitWasNullifiedByLuck = true;
+                        }
+                    }
+
+                    if (!hitWasNullifiedByLuck && outcome.damageAfterSRForAvg > 0) {
+                        allHitDamageValuesThisTurn.push(outcome.damageAfterSRForAvg);
+                    }
+                    
+                    if (damageToApply > 0) {
+                        hpAfterEvents -= damageToApply;
+                    }
+
+                    if (wasStunnedByThisHit) { // Stun applies even if damage was nullified by Luck
+                        stunsThisTurn++;
+                    }
                 }
             }
-            return { hpAfterDamageEvents: hpAfterEvents, wsHitsInTurn: wsHitsThisTurn, stunsInTurn: stunsThisTurn, hitDamageValues: allHitDamageValuesThisTurn };
+            return { 
+                hpAfterDamageEvents: hpAfterEvents, 
+                wsHitsInTurn: wsHitsThisTurn, 
+                stunsInTurn: stunsThisTurn, 
+                hitDamageValues: allHitDamageValuesThisTurn,
+                luckSavesInTurn: luckSavesThisTurn 
+            };
         }
-        function simulateOneFullRun(unitMaxHp, unitSR, hpRegenPerTurnFloat, stormActive, maxTurns) {
+
+        function simulateOneFullRun(unitMaxHp, unitSR, hpRegenPerTurnFloat, stormActive, maxTurns, hasLuck) {
             let currentHp = unitMaxHp; let turnsCompleted = 0; 
             let totalWsHits = 0; let totalStunsSustained = 0;
             let allHitDamageValuesInRun = []; let died = false;
             let eventOpportunitiesAccumulator = 0; 
             let hpRegenAccumulator = 0;
+            let totalLuckSavesInRun = 0;
+
             for (let t = 0; t < maxTurns; t++) {
                 eventOpportunitiesAccumulator += EVENTS_PER_TURN_RAW;
                 const eventsToProcessThisTurn = Math.floor(eventOpportunitiesAccumulator);
                 eventOpportunitiesAccumulator -= eventsToProcessThisTurn; 
-                const turnOutcome = simulateTurnEvents(currentHp, unitMaxHp, unitSR, stormActive, eventsToProcessThisTurn);
+                
+                const turnOutcome = simulateTurnEvents(currentHp, unitMaxHp, unitSR, stormActive, eventsToProcessThisTurn, hasLuck);
                 currentHp = turnOutcome.hpAfterDamageEvents; 
-                totalWsHits += turnOutcome.wsHitsInTurn; totalStunsSustained += turnOutcome.stunsInTurn; 
+                totalWsHits += turnOutcome.wsHitsInTurn; 
+                totalStunsSustained += turnOutcome.stunsInTurn; 
                 allHitDamageValuesInRun.push(...turnOutcome.hitDamageValues);
+                totalLuckSavesInRun += turnOutcome.luckSavesInTurn;
+
                 if (currentHp <= 0) { died = true; turnsCompleted = t; break; } 
+                
                 if (hpRegenPerTurnFloat > 0) {
                     hpRegenAccumulator += hpRegenPerTurnFloat;
                     const actualHpToRegenThisTurn = Math.floor(hpRegenAccumulator);
@@ -201,29 +263,67 @@
                 }
                 turnsCompleted = t + 1; 
             }
-            return { numTurnsCompleted: turnsCompleted, died: died, turnOfDeath: died ? turnsCompleted : -1, totalWsHits: totalWsHits, totalStuns: totalStunsSustained, allHitDamageValues: allHitDamageValuesInRun };
+            return { 
+                numTurnsCompleted: turnsCompleted, 
+                died: died, 
+                turnOfDeath: died ? turnsCompleted : -1, 
+                totalWsHits: totalWsHits, 
+                totalStuns: totalStunsSustained, 
+                allHitDamageValues: allHitDamageValuesInRun,
+                totalLuckSaves: totalLuckSavesInRun
+            };
         }
+
         function startWrathfulSkiesSimulation() {
-            // ... (Input parsing and validation same as v2.8.2) ...
-            // ... (Stat calculation including Standard Deviation same as v2.8.2) ...
             document.querySelectorAll('.input-panel input[type="number"]').forEach(input => input.style.borderColor = '');
-            const unitMaxHpInput = document.getElementById('unitMaxHp'); const unitSRInput = document.getElementById('unitSR');
-            const hpRegenPerTurnInput = document.getElementById('hpRegenPerTurn'); const maxTurnsToSimulateInput = document.getElementById('maxTurnsToSimulate');
-            const simulationRunsInput = document.getElementById('simulationRuns'); const stormActive = document.getElementById('stormActive').checked;
+            const unitMaxHpInput = document.getElementById('unitMaxHp'); 
+            const unitSRInput = document.getElementById('unitSR');
+            const hpRegenPerTurnInput = document.getElementById('hpRegenPerTurn'); 
+            const maxTurnsToSimulateInput = document.getElementById('maxTurnsToSimulate');
+            const simulationRunsInput = document.getElementById('simulationRuns'); 
+            const stormActive = document.getElementById('stormActive').checked;
+            const hasLuck = document.getElementById('hasLuck').checked;
+
             let isValid = true;
-            const inputsToValidate = [ { el: unitMaxHpInput, min: 1, name: "Unit Max HP" }, { el: unitSRInput, min: 0, name: "Unit SR" }, { el: maxTurnsToSimulateInput, min: 1, name: "Max Turns to Simulate" }, { el: simulationRunsInput, min: 1, name: "Simulation Runs" }];
+            const inputsToValidate = [ 
+                { el: unitMaxHpInput, min: 1, name: "Unit Max HP" }, 
+                { el: unitSRInput, min: 0, name: "Unit SR" }, 
+                { el: maxTurnsToSimulateInput, min: 1, name: "Max Turns to Simulate" }, 
+                { el: simulationRunsInput, min: 1, name: "Simulation Runs" }
+            ];
             let errorMessages = [];
-            inputsToValidate.forEach(item => { const value = parseInt(item.el.value); if (item.el.value === "" || isNaN(value) || value < item.min) { item.el.style.borderColor = 'red'; isValid = false; errorMessages.push(`${item.name} must be a number >= ${item.min}.`);}});
+            inputsToValidate.forEach(item => { 
+                const value = parseInt(item.el.value); 
+                if (item.el.value === "" || isNaN(value) || value < item.min) { 
+                    item.el.style.borderColor = 'red'; 
+                    isValid = false; 
+                    errorMessages.push(`${item.name} must be a number >= ${item.min}.`);
+                }
+            });
             const hpRegenValue = parseFloat(hpRegenPerTurnInput.value);
-            if (hpRegenPerTurnInput.value === "" || isNaN(hpRegenValue) || hpRegenValue < 0) { hpRegenPerTurnInput.style.borderColor = 'red'; isValid = false; errorMessages.push(`HP Gained Per Turn must be a number >= 0.`);}
+            if (hpRegenPerTurnInput.value === "" || isNaN(hpRegenValue) || hpRegenValue < 0) { 
+                hpRegenPerTurnInput.style.borderColor = 'red'; 
+                isValid = false; 
+                errorMessages.push(`HP Gained Per Turn must be a number >= 0.`);
+            }
+
             const resultsDiv = document.getElementById('results'); 
             const svgGraphElement = document.getElementById('survivalGraphSvg');
-            if (!isValid) { resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Please correct the highlighted fields. Errors:<br>- ${errorMessages.join('<br>- ')}</p>`; svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>'; return; }
-            const unitMaxHp = parseInt(unitMaxHpInput.value); const unitSR = parseInt(unitSRInput.value);
-            const maxTurns = parseInt(maxTurnsToSimulateInput.value); const numRuns = parseInt(simulationRunsInput.value);
+            if (!isValid) { 
+                resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Please correct the highlighted fields. Errors:<br>- ${errorMessages.join('<br>- ')}</p>`; 
+                svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>'; 
+                return; 
+            }
+
+            const unitMaxHp = parseInt(unitMaxHpInput.value); 
+            const unitSR = parseInt(unitSRInput.value);
+            const maxTurns = parseInt(maxTurnsToSimulateInput.value); 
+            const numRuns = parseInt(simulationRunsInput.value);
+
             resultsDiv.innerHTML = "<p style='padding:10px;'>Running simulation, please wait...</p>"; 
             svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Generating graph...</text>';
             document.querySelector('.action-button').disabled = true;
+
             setTimeout(() => {
                 try {
                     let sumOfTurnsCompleted = 0; let deathCount = 0;
@@ -231,15 +331,24 @@
                     let allHitDamageValuesAcrossRuns = [];
                     let deathsAtTurnT_array = new Array(maxTurns).fill(0);
                     let allSurvivalLengths = []; 
+                    let totalLuckSavesSum = 0;
 
                     for (let i = 0; i < numRuns; i++) {
-                        const runResult = simulateOneFullRun(unitMaxHp, unitSR, hpRegenValue, stormActive, maxTurns);
+                        const runResult = simulateOneFullRun(unitMaxHp, unitSR, hpRegenValue, stormActive, maxTurns, hasLuck);
                         sumOfTurnsCompleted += runResult.numTurnsCompleted;
                         allSurvivalLengths.push(runResult.numTurnsCompleted); 
-                        if (runResult.died) { deathCount++; if (runResult.turnOfDeath >= 0 && runResult.turnOfDeath < maxTurns) { deathsAtTurnT_array[runResult.turnOfDeath]++; }}
-                        totalWsHitsSum += runResult.totalWsHits; totalStunsSum += runResult.totalStuns;
+                        if (runResult.died) { 
+                            deathCount++; 
+                            if (runResult.turnOfDeath >= 0 && runResult.turnOfDeath < maxTurns) { 
+                                deathsAtTurnT_array[runResult.turnOfDeath]++; 
+                            }
+                        }
+                        totalWsHitsSum += runResult.totalWsHits; 
+                        totalStunsSum += runResult.totalStuns;
                         allHitDamageValuesAcrossRuns.push(...runResult.allHitDamageValues);
+                        totalLuckSavesSum += runResult.totalLuckSaves;
                     }
+
                     const avgSurvivalLength = sumOfTurnsCompleted / numRuns;
                     const deathPercentage = (deathCount / numRuns) * 100;
                     let stdDevSurvivalLength = 0;
@@ -253,12 +362,19 @@
                     const survivalMinus1Std = Math.max(0, avgSurvivalLength - stdDevSurvivalLength);
                     const survivalPlus2Std = avgSurvivalLength + (2 * stdDevSurvivalLength);
                     const survivalMinus2Std = Math.max(0, avgSurvivalLength - (2 * stdDevSurvivalLength));
+                    
                     const avgTotalWsHitsPerRun = totalWsHitsSum / numRuns;
                     const avgWsHitsPerTurnSurvived = sumOfTurnsCompleted > 0 ? totalWsHitsSum / sumOfTurnsCompleted : 0;
+                    
                     let avgDamagePerWsHit = 0; 
-                    if (totalWsHitsSum > 0) { avgDamagePerWsHit = allHitDamageValuesAcrossRuns.reduce((sum, val) => sum + val, 0) / totalWsHitsSum; }
+                    if (allHitDamageValuesAcrossRuns.length > 0) { 
+                        avgDamagePerWsHit = allHitDamageValuesAcrossRuns.reduce((sum, val) => sum + val, 0) / allHitDamageValuesAcrossRuns.length; 
+                    }
+                    
                     const avgStunsPerRun = totalStunsSum / numRuns;
                     const avgStunsPerTurnSurvived = sumOfTurnsCompleted > 0 ? totalStunsSum / sumOfTurnsCompleted : 0;
+                    const avgLuckSavesPerRun = totalLuckSavesSum / numRuns;
+
                     let outputHTML = `<div class="stat-group"><h4>Overall Statistics (per Run)</h4>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Total Simulation Runs:</span><span class="stat-value">${numRuns}</span></div>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Unit Died in Runs:</span><span class="stat-value">${deathCount} (${deathPercentage.toFixed(1)}%)</span></div>`;
@@ -266,20 +382,36 @@
                     outputHTML += `<div class="stat-item"><span class="stat-label">Std. Dev. of Survival Length:</span><span class="stat-value">${stdDevSurvivalLength.toFixed(2)}</span></div>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">    Avg ± 1 Std Dev Range:</span><span class="stat-value">${survivalMinus1Std.toFixed(2)} - ${survivalPlus1Std.toFixed(2)}</span></div>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">    Avg ± 2 Std Dev Range:</span><span class="stat-value">${survivalMinus2Std.toFixed(2)} - ${survivalPlus2Std.toFixed(2)}</span></div>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Wrathful Skies Hits:</span><span class="stat-value">${avgTotalWsHitsPerRun.toFixed(2)}</span></div>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Stuns:</span><span class="stat-value">${avgStunsPerRun.toFixed(2)}</span></div></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Wrathful Skies Hit Attempts:</span><span class="stat-value">${avgTotalWsHitsPerRun.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Stuns:</span><span class="stat-value">${avgStunsPerRun.toFixed(2)}</span></div>`;
+                    if (hasLuck) {
+                        outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Luck Saves (damage nullified):</span><span class="stat-value">${avgLuckSavesPerRun.toFixed(2)}</span></div>`;
+                    }
+                    outputHTML += `</div>`;
+                    
                     outputHTML += `<div class="stat-group"><h4>Per-Turn Statistics (avg. over survived turns)</h4>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Wrathful Skies Hits (per Turn):</span><span class="stat-value">${avgWsHitsPerTurnSurvived.toFixed(3)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Wrathful Skies Hit Attempts (per Turn):</span><span class="stat-value">${avgWsHitsPerTurnSurvived.toFixed(3)}</span></div>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Stuns (per Turn):</span><span class="stat-value">${avgStunsPerTurnSurvived.toFixed(3)}</span></div></div>`;
+                    
                     outputHTML += `<div class="stat-group"><h4>Wrathful Skies Hit Details</h4>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Damage per Wrathful Skies Hit:</span><span class="stat-value">${avgDamagePerWsHit.toFixed(2)}</span></div></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Damage per Non-Lucked WS Hit:</span><span class="stat-value">${avgDamagePerWsHit.toFixed(2)}</span></div></div>`;
                     resultsDiv.innerHTML = outputHTML;
+
                     let probDyingInTurnT_graphData = []; let cumulativeProbDeadByTurnT_graphData = [];
                     let cumulativeDeaths = 0;
-                    for (let t = 0; t < maxTurns; t++) { probDyingInTurnT_graphData.push((deathsAtTurnT_array[t] / numRuns) * 100); cumulativeDeaths += deathsAtTurnT_array[t]; cumulativeProbDeadByTurnT_graphData.push((cumulativeDeaths / numRuns) * 100); }
+                    for (let t = 0; t < maxTurns; t++) { 
+                        probDyingInTurnT_graphData.push((deathsAtTurnT_array[t] / numRuns) * 100); 
+                        cumulativeDeaths += deathsAtTurnT_array[t]; 
+                        cumulativeProbDeadByTurnT_graphData.push((cumulativeDeaths / numRuns) * 100); 
+                    }
                     drawSurvivalGraph(svgGraphElement, maxTurns, probDyingInTurnT_graphData, cumulativeProbDeadByTurnT_graphData);
-                } catch (error) { resultsDiv.innerHTML = `<p style="color:red; padding:10px;">An error occurred: ${error.message}</p><pre>${error.stack}</pre>`; svgGraphElement.innerHTML = `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>`; console.error("Simulation error:", error);
-                } finally { document.querySelector('.action-button').disabled = false; }
+                } catch (error) { 
+                    resultsDiv.innerHTML = `<p style="color:red; padding:10px;">An error occurred: ${error.message}</p><pre>${error.stack}</pre>`; 
+                    svgGraphElement.innerHTML = `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>`; 
+                    console.error("Simulation error:", error);
+                } finally { 
+                    document.querySelector('.action-button').disabled = false; 
+                }
             }, 10);
         }
 
@@ -333,8 +465,7 @@
             xAxisLabel.textContent = "Turn Number"; 
             svgElement.appendChild(xAxisLabel);
 
-            // Y-axis Ticks at 10%
-            for (let i = 0; i <= 10; i++) { // Loop 0 to 10 for 0%, 10%, ..., 100%
+            for (let i = 0; i <= 10; i++) { 
                 const perc = i * 10; 
                 const y = yScale(perc);
                 const tick = document.createElementNS(svgNS, 'line'); 
