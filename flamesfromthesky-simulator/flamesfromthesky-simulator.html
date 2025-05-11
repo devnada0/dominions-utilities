@@ -352,7 +352,7 @@
                 </div>
                 <div class="input-group">
                     <label for="fireballsPerBarrage"><span class="main-label-text">Fireballs per Barrage</span></label>
-                    <input type="number" id="fireballsPerBarrage" value="493" min="1">
+                    <input type="number" id="fireballsPerBarrage" value="456" min="1"> <!-- Default changed -->
                 </div>
                 <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
                 <div class="input-group">
@@ -408,7 +408,9 @@
                     <li><strong>Unit Size:</strong> The size of the unit, used for calculating burning damage.</li>
                     <li><strong>HP Gained Per Turn:</strong> Amount of HP the unit regenerates at the end of each full turn.</li>
                     <li><strong>Number of Barrages:</strong> How many times the Flames From the Sky spell is cast. Each barrage lasts 3 game turns.</li>
-                    <li><strong>Fireballs per Barrage:</strong> Total number of fireballs released by a single barrage spell.</li>
+                    <li><strong>Fireballs per Barrage:</strong> Total number of fireballs released by a single barrage spell. (Default: 456).
+                        <br><small><em>Note: In-game observations (17 tests from an F9 caster) suggest the number of fireballs per casting is variable, with an observed mean of approximately 456, a median of 464, and a range of 425-493. The formula appears to be dice-based (e.g., potentially around <code>505 - 13d6</code>). This input field currently sets a fixed number for each simulated barrage.</em></small>
+                    </li>
                     <li><strong>Province Temperature:</strong> The temperature scale of the province (Cold -5 to Heat +5).</li>
                     <li><strong>Unit is Ethereal?:</strong> If checked, the unit cannot catch fire.</li>
                     <li><strong>Twist of Fate Active?:</strong> If checked, enables Twist of Fate mechanic.
@@ -436,7 +438,7 @@
                                     <li><strong>Fire Resistance (FR) on Initial Hit (applied to <code>DamagePreDefenses</code>):</strong>
                                         <ol style="list-style-type: roman; padding-left: 20px;">
                                             <li>Direct Subtraction: <code>Damage_Stage1 = DamagePreDefenses - UnitFR</code>.</li>
-                                            <li>Percentage Reduction: An additional amount, <code>Math.round(UnitFR * 0.02 * Nominal_Base)</code>, is subtracted from <code>Damage_Stage1</code>. (<code>Nominal_Base</code> is the spell's fixed base component: 24 for center, 16 for splash, *not* the DRN-modified value).</li>
+                                            <li>Percentage Reduction: An additional amount, <code>Math.round(UnitFR * 0.02 * Nominal_Base)</code>, is subtracted from <code>Damage_Stage1</code>. (<code>Nominal_Base</code> is the spell's fixed nominal component: 24 for center, 16 for splash, *not* the DRN-modified value <code>DamagePreDefenses</code>).</li>
                                         </ol>
                                     </li>
                                     <li><strong>Protection (Prot) - Armor Piercing:</strong> Effective Protection = <code>floor(Unit Protection / 2)</code>. <code>Net Damage = max(0, Damage_After_All_FR - Effective_Protection)</code>.</li>
@@ -541,6 +543,7 @@
             const effectiveProt = Math.floor(unitFullProt / 2); 
             
             let damageAfterDirectFR = damagePreDefenses - unitFR;
+            // FR Part 2: Percentage reduction based on NOMINAL base of the hit type (24 or 16)
             const percentageBasedReductionAmount = Math.round(unitFR * 0.02 * nominalBaseOfHit); 
             let damageAfterAllFR = Math.max(0, damageAfterDirectFR - percentageBasedReductionAmount);
             
@@ -831,7 +834,7 @@
                         }
                         
                         sumOfAllInitialDamages += runResult.totalInitialDamage;
-                        if (runResult.totalInitialDamage > 0) { // Check if any initial damage was dealt in the run
+                        if (runResult.totalInitialDamage > 0) {
                             countRunsWithInitialDamage++;
                             sumOfInitialDamage_WhenHit += runResult.totalInitialDamage; 
                         }
@@ -857,9 +860,9 @@
                     const avgBurnDamagePerRun = sumOfAllBurnDamages / simInputs.simulationRuns;
                     const avgTofNullifiedPerRun = sumTofNullified / simInputs.simulationRuns;
 
-                    const percCaughtFireCurrent = (runsWhereCaughtFire / simInputs.simulationRuns) * 100; // Renamed for clarity
-                    const avgTimesCaughtFireWhenCaughtCurrent = runsWhereCaughtFire > 0 ? sumTimesCaughtFire / runsWhereCaughtFire : 0; 
-                    const avgTurnsBurningWhenCaughtCurrent = runsWhereCaughtFire > 0 ? sumTurnsSpentBurning / runsWhereCaughtFire : 0;
+                    const percRunsCaughtFire = (runsWhereCaughtFire / simInputs.simulationRuns) * 100; 
+                    const avgTimesCaughtFireWhenCaught = runsWhereCaughtFire > 0 ? sumTimesCaughtFire / runsWhereCaughtFire : 0; 
+                    const avgTurnsBurningWhenCaught = runsWhereCaughtFire > 0 ? sumTurnsSpentBurning / runsWhereCaughtFire : 0;
 
                     let outputHTML = `<div class="stat-group"><h4>Overall Statistics</h4>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Total Runs:</span><span class="stat-value">${simInputs.simulationRuns}</span></div>`;
@@ -878,9 +881,9 @@
                     outputHTML += `</div>`;
 
                     outputHTML += `<div class="stat-group"><h4>Fire Status Statistics</h4>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Runs Unit Caught Fire:</span><span class="stat-value">${runsWhereCaughtFire} (${percCaughtFireCurrent.toFixed(1)}%)</span></div>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Times Caught Fire (if caught):</span><span class="stat-value">${avgTimesCaughtFireWhenCaughtCurrent.toFixed(2)}</span></div>`;
-                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Turns Spent Burning (if caught):</span><span class="stat-value">${avgTurnsBurningWhenCaughtCurrent.toFixed(2)}</span></div></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Runs Unit Caught Fire:</span><span class="stat-value">${runsWhereCaughtFire} (${percRunsCaughtFire.toFixed(1)}%)</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Times Caught Fire (if caught):</span><span class="stat-value">${avgTimesCaughtFireWhenCaught.toFixed(2)}</span></div>`;
+                    outputHTML += `<div class="stat-item"><span class="stat-label">Avg. Turns Spent Burning (if caught):</span><span class="stat-value">${avgTurnsBurningWhenCaught.toFixed(2)}</span></div></div>`;
                     
                     resultsDiv.innerHTML = outputHTML;
 
@@ -990,7 +993,7 @@
                     gridGroup.appendChild(gridLine);
                 }
             }
-            // Y-axis title text element (e.g., "Percentage (%)") is intentionally omitted here as per request.
+            // Y-axis title text element intentionally omitted here.
             
             const createPointsString = (data, xMap, yMap) => data.map((d, i) => `${xMap(i).toFixed(2)},${yMap(d).toFixed(2)}`).join(' ');
             
