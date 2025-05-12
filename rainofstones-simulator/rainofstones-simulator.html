@@ -131,13 +131,10 @@
                     <label for="totalSizeInSquare"><span class="main-label-text">Total Size of Units in Square</span><small>(Incl. this unit)</small></label>
                     <input type="number" id="totalSizeInSquare" value="3" min="1">
                 </div>
-                <div class="input-group">
-                    <label for="stonesPerEvent"><span class="main-label-text">Stones every 320 ticks</span></label>
-                    <input type="number" id="stonesPerEvent" value="102" min="0">
-                </div>
+                <!-- Removed stonesPerEvent input as it's now derived -->
                  <div class="input-group">
                     <label for="headHitChance"><span class="main-label-text">Head Hit Chance (%)</span></label>
-                    <input type="number" id="headHitChance" value="67" min="0" max="100">
+                    <input type="number" id="headHitChance" value="67" min="0" max="100"> <!-- Default updated -->
                 </div>
                 <div class="input-group">
                     <label for="airShieldPercent"><span class="main-label-text">Air Shield (%)</span></label>
@@ -149,7 +146,7 @@
                 </div>
                 <div class="input-group">
                     <label for="simulationRuns"><span class="main-label-text">Simulation Runs</span></label>
-                    <input type="number" id="simulationRuns" value="1000" min="1">
+                    <input type="number" id="simulationRuns" value="10000" min="1">
                 </div>
 
                 <hr style="border: none; border-top: 1px dashed var(--border-color); margin: 20px 0;">
@@ -201,8 +198,7 @@
                     <li><strong>Unit Size:</strong> Size of the simulated unit (influences targeting chance and the attack roll if a shield is present). (Default: 3, Min: 1)</li>
                     <li><strong>Unit Fatigue:</strong> Current fatigue of the unit. Influences armor defeat chance for certain protection rolls. (Default: 0, Min: 0)</li>
                     <li><strong>Total Size of Units in Square:</strong> The sum of the sizes of ALL units occupying the same square as the simulated unit (including the simulated unit itself). Influences the chance the unit is targeted if the square is hit. (Default: 3, Min: Unit Size)</li>
-                    <li><strong>Stones every 320 ticks:</strong> How many stones fall across the entire battlefield during each Rain of Stones event trigger. (Default: 138, Min: 0)</li>
-                    <li><strong>Head Hit Chance (%):</strong> The percentage chance that a hit which is not a 'miss' targets the head. The remainder hit the body. (Default: 75, Range: 0-100)</li>
+                    <li><strong>Head Hit Chance (%):</strong> The percentage chance that a hit which is not a 'miss' targets the head. The remainder hit the body. (Default: 67, Range: 0-100)</li>
                     <li><strong>Air Shield (%):</strong> Percentage chance for Air Shield to nullify an incoming stone *before* any hit resolution. (Default: 0, Range: 0-100)</li>
                     <li><strong>Max Turns to Simulate:</strong> The maximum number of turns a single simulation run will last if the unit survives that long. (Default: 100, Min: 1)</li>
                     <li><strong>Simulation Runs:</strong> Number of times to run the full simulation sequence for statistical analysis. (Default: 10000, Min: 1)</li>
@@ -216,14 +212,15 @@
                     <li><strong>Event Timing:</strong>
                         <ul>
                             <li>A Dominions turn consists of 7500 ticks.</li>
-                            <li>A Rain of Stones event occurs every 320 ticks.</li>
-                            <li>During each event, the specified number of "Stones every 320 ticks" fall across the battlefield.</li>
+                            <li>A Rain of Stones event occurs every 320 ticks (approx. 23.44 events per turn).</li>
+                            <li>During each event, two components trigger:</li>
+                            <li style="list-style-type: disc; margin-left: 20px;"><strong>Component A (Area Saturation):</strong> 1% of the total battlefield squares (assumed 5000, so 50 stones) are each targeted by one projectile. Each projectile randomly picks a square.</li>
+                            <li style="list-style-type: disc; margin-left: 20px;"><strong>Component B (Unit Focus):</strong> If the simulated unit's square is considered "unit-filled", there is a 10% chance it is targeted by one additional projectile from this component.</li>
                         </ul>
                     </li>
-                    <li><strong>Stone Targeting:</strong>
+                    <li><strong>Stone Targeting (within a hit square):</strong>
                         <ul>
-                            <li>Each stone randomly targets one square on the battlefield (out of 5000 total squares assumed).</li>
-                            <li>If a stone targets the square occupied by the simulated unit:
+                            <li>If a stone (from Component A or B) lands in the square occupied by the simulated unit:
                                 <ul><li>The chance this specific unit is targeted by that stone is <code>Unit Size / Total Size of Units in Square</code>.</li></ul>
                             </li>
                         </ul>
@@ -250,7 +247,7 @@
                              </li>
                              <li><strong>If <code>Unit Shield Parry Value == 0</code> (No Shield):</strong>
                                  <ul>
-                                     <li>The outcome is automatically a **Normal Hit**. (Misses and Parries are impossible).</li>
+                                     <li>The outcome is automatically a **Normal Hit**. (Misses and Parries are impossible from this step).</li>
                                  </ul>
                              </li>
                         </ul>
@@ -310,7 +307,7 @@
                  <ul>
                     <li>Simulates only a single unit.</li>
                     <li>Assumes a fixed battlefield size of 5000 squares for targeting calculations.</li>
-                    <li>Does not model morale, afflictions (other than stun from WS), or other battlefield spells/effects.</li>
+                    <li>Does not model morale, afflictions, critical hits (other than armor defeat), or other battlefield spells/effects.</li>
                     <li>DRN explosion is capped at 20 iterations per die.</li>
                     <li>Assumes Rain of Stones is the only source of damage.</li>
                 </ul>
@@ -326,6 +323,8 @@
         const MAX_DRN_ITERATIONS = 20;
         const LUCK_CHANCE = 0.75;
         const ETHEREAL_NULLIFY_CHANCE = 0.75;
+        const COMPONENT_A_PERCENT_BFIELD = 0.01; // 1% of battlefield for Component A
+        const COMPONENT_B_CHANCE_TARGET_OCCUPIED_SQUARE = 0.10; // 10% chance for Component B
 
         // --- Dice Rolling ---
         function rollD6() {
@@ -335,13 +334,12 @@
         function calculateDRN() {
             let d1_raw = rollD6();
             let d2_raw = rollD6();
-            const rawSum = d1_raw + d2_raw; // Store the sum of initial dice
+            const rawSum = d1_raw + d2_raw;
 
             let total = 0;
             let iterations;
             let currentDieVal;
 
-            // Process first die
             currentDieVal = d1_raw;
             total += currentDieVal;
             iterations = 0;
@@ -352,7 +350,6 @@
                 iterations++;
             }
 
-             // Process second die
             currentDieVal = d2_raw;
             total += currentDieVal;
             iterations = 0;
@@ -362,43 +359,34 @@
                 total += currentDieVal;
                 iterations++;
             }
-            // Return the final exploded value, the raw sum of initial dice
             return { rollValue: total, rawSum: rawSum };
         }
 
         // --- Core Simulation Logic ---
-
-        // Simulates the outcome of a single stone potentially impacting the unit
         function resolveSingleStoneImpact(unitConfig, currentHp) {
             let outcome = {
                 wasTargeted: false,
                 wasNullifiedEthereal: false,
                 wasNullifiedAirShield: false,
-                hitType: 'miss', // Default, will be updated
+                hitType: 'miss',
                 damageDealt: 0,
                 luckSave: false,
                 hitLocation: 'body'
             };
 
-            // 1. Targeting Check
             const divisor = Math.max(unitConfig.unitSize, unitConfig.totalSizeInSquare);
             const targetChance = unitConfig.unitSize / divisor;
             if (Math.random() > targetChance) return outcome;
             outcome.wasTargeted = true;
 
-            // 2. Ethereal Check
             if (unitConfig.isEthereal && Math.random() < ETHEREAL_NULLIFY_CHANCE) {
                 outcome.wasNullifiedEthereal = true; return outcome;
             }
-
-            // 3. Air Shield Check
             if (unitConfig.airShieldPercent > 0 && (Math.random() * 100) < unitConfig.airShieldPercent) {
                 outcome.wasNullifiedAirShield = true; return outcome;
             }
 
-            // 4. Hit Resolution
             const hasShieldWithParry = unitConfig.unitShieldParry > 0;
-
             if (hasShieldWithParry) {
                 const attackDRN = calculateDRN();
                 const defenseDRN = calculateDRN();
@@ -407,39 +395,27 @@
                 const parryValue = unitConfig.unitShieldParry;
 
                 if (attackRoll <= defenseRollBase) {
-                    outcome.hitType = 'miss';
-                    return outcome;
+                    outcome.hitType = 'miss'; return outcome;
                 } else if (attackRoll <= defenseRollBase + parryValue) {
                     outcome.hitType = 'parried';
                 } else {
                     outcome.hitType = 'normal_hit';
                 }
             } else {
-                // No shield with parry value, so it's automatically a normal hit if not nullified
                 outcome.hitType = 'normal_hit';
             }
 
-            // --- Unified Damage Calculation Phase ---
             let finalDamage = 0;
-
-            // a. Determine Hit Location
             const isHeadHit = (Math.random() * 100) < unitConfig.headHitChance;
             outcome.hitLocation = isHeadHit ? 'head' : 'body';
-
-            // b. Calculate Attacker DamageRoll
             const baseDamage = isHeadHit ? 6 : 5;
             const damageDRN = calculateDRN();
             const damageRoll = baseDamage + damageDRN.rollValue;
 
-            // c. Roll Defender Protection DRN_P (gets exploded value and raw sum)
             const protectionDRN = calculateDRN();
             const drnP_exploded_value = protectionDRN.rollValue;
             const drnP_raw_sum = protectionDRN.rawSum;
-
-            // d. Get Relevant Body Armor
             const relevantBodyArmor = isHeadHit ? unitConfig.unitHeadArmor : unitConfig.unitBodyArmor;
-
-            // e. Calculate Effective Body Armor
             let effectiveBodyArmor = relevantBodyArmor;
             const unitFatigue = unitConfig.unitFatigue;
 
@@ -451,19 +427,13 @@
                 effectiveBodyArmor = Math.round(relevantBodyArmor * 0.75);
             }
 
-            // f. Calculate Base Protection
             let baseProtection = effectiveBodyArmor;
-            if (outcome.hitType === 'parried') { // Shield protection is added if it was a parry
+            if (outcome.hitType === 'parried') {
                 baseProtection += unitConfig.unitShieldProt;
             }
-
-            // g. Calculate Total Protection Roll (uses exploded DRN_P)
             const totalProtectionRoll = baseProtection + drnP_exploded_value;
-
-            // h. Calculate Final Damage
             finalDamage = Math.max(0, damageRoll - totalProtectionRoll);
 
-            // i. Apply Luck Check
             if (finalDamage > 0) {
                  if (unitConfig.hasLuck && currentHp > 0 && (currentHp - finalDamage <= 0)) {
                      if (Math.random() < LUCK_CHANCE) {
@@ -472,137 +442,107 @@
                      }
                  }
             }
-
             outcome.damageDealt = finalDamage;
             return outcome;
         }
 
-
-        // Simulates one full run for a unit
         function simulateOneFullRun(unitConfig) {
-             // [ Initialization of run counters remains the same ]
-             let currentHp = unitConfig.unitMaxHp;
+            let currentHp = unitConfig.unitMaxHp;
             let turnsCompleted = 0;
             let died = false;
             let turnOfDeath = -1;
             let hpRegenAccumulator = 0;
-            let nextEventTick = TICKS_PER_RAIN_OF_STONES_EVENT;
+            let eventAccumulator = 0;
+            const eventsPerTurnExact = TICKS_PER_TURN / TICKS_PER_RAIN_OF_STONES_EVENT;
 
-            // --- Initialize Run Counters ---
             let runStonesTargetedUnit = 0;
-            let runEtherealNulls = 0;
-            let runAirShieldNulls = 0;
-            let runMisses = 0;
-            let runParries = 0; // Counts parry outcomes
-            let runNormalHits = 0; // Counts normal hit outcomes
-            let runHpLost = 0;
-            let runLuckSaves = 0;
-            // Hit Location Counters
-            let runHeadHits_Parried = 0;
-            let runBodyHits_Parried = 0;
-            let runHeadHits_Normal = 0;
-            let runBodyHits_Normal = 0;
-            // Damage Accumulators
-            let runSumDamageFromHits = 0;
-            let runCountDamagingHits = 0;
-            let runSumDamageFromParries = 0;
-            let runCountDamagingParries = 0;
+            let runEtherealNulls = 0, runAirShieldNulls = 0, runMisses = 0;
+            let runParries = 0, runNormalHits = 0, runHpLost = 0, runLuckSaves = 0;
+            let runHeadHits_Parried = 0, runBodyHits_Parried = 0;
+            let runHeadHits_Normal = 0, runBodyHits_Normal = 0;
+            let runSumDamageFromHits = 0, runCountDamagingHits = 0;
+            let runSumDamageFromParries = 0, runCountDamagingParries = 0;
 
             for (let t = 0; t < unitConfig.maxTurns; t++) {
-                 // [ Tick loop and event triggering remain the same ]
-                 for (let tick = 1; tick <= TICKS_PER_TURN; tick++) {
+                eventAccumulator += eventsPerTurnExact;
+                const eventsToProcessThisTurn = Math.floor(eventAccumulator);
+                eventAccumulator -= eventsToProcessThisTurn;
+
+                for (let eventIdx = 0; eventIdx < eventsToProcessThisTurn; eventIdx++) {
                     if (currentHp <= 0) break;
 
-                    if (tick === nextEventTick) {
-                         // Event Triggered
-                        for (let stone = 0; stone < unitConfig.stonesPerEvent; stone++) {
-                             if (currentHp <= 0) break;
+                    // Component A: Area Saturation
+                    const componentA_Stones = Math.round(COMPONENT_A_PERCENT_BFIELD * TOTAL_BATTLEFIELD_SQUARES);
+                    for (let stoneA = 0; stoneA < componentA_Stones; stoneA++) {
+                        if (currentHp <= 0) break;
+                        const targetSquareA = Math.floor(Math.random() * TOTAL_BATTLEFIELD_SQUARES);
+                        if (targetSquareA === 0) { // Unit's square hit
+                            const impactOutcomeA = resolveSingleStoneImpact(unitConfig, currentHp);
+                            tallyImpact(impactOutcomeA);
+                        }
+                    }
 
-                             const targetSquare = Math.floor(Math.random() * TOTAL_BATTLEFIELD_SQUARES);
-                             if (targetSquare === 0) { // Assume unit is in square 0
-                                 const impactOutcome = resolveSingleStoneImpact(unitConfig, currentHp);
+                    // Component B: Unit Focus
+                    if (currentHp <= 0) break;
+                    if (Math.random() < COMPONENT_B_CHANCE_TARGET_OCCUPIED_SQUARE) {
+                        const impactOutcomeB = resolveSingleStoneImpact(unitConfig, currentHp);
+                        tallyImpact(impactOutcomeB);
+                    }
+                } // End event loop for turn
 
-                                 // --- Tally Outcomes ---
-                                 if (impactOutcome.wasTargeted) {
-                                     runStonesTargetedUnit++;
-                                     if (impactOutcome.wasNullifiedEthereal) {
-                                         runEtherealNulls++;
-                                     } else if (impactOutcome.wasNullifiedAirShield) {
-                                         runAirShieldNulls++;
-                                     } else if (impactOutcome.hitType === 'miss') {
-                                         runMisses++; // This will only increment if hasShieldWithParry was true
-                                     } else { // Hit was either parried or normal
-                                         if (impactOutcome.hitType === 'parried') {
-                                             runParries++; // Increment parry count
-                                             if(impactOutcome.hitLocation === 'head') runHeadHits_Parried++;
-                                             else runBodyHits_Parried++;
-                                         }
-                                         if (impactOutcome.hitType === 'normal_hit') {
-                                             runNormalHits++; // Increment normal hit count
-                                             if(impactOutcome.hitLocation === 'head') runHeadHits_Normal++;
-                                             else runBodyHits_Normal++;
-                                         }
+                if (currentHp <= 0) {
+                     died = true; turnOfDeath = t; turnsCompleted = t; break;
+                }
 
-                                         // Track damage stats if potential damage > 0
-                                         // impactOutcome.damageDealt already reflects Luck negation
-                                         if(impactOutcome.damageDealt > 0) {
-                                             runSumDamageFromHits += impactOutcome.damageDealt;
-                                             runCountDamagingHits++;
-                                             if(impactOutcome.hitType === 'parried') {
-                                                 runSumDamageFromParries += impactOutcome.damageDealt;
-                                                 runCountDamagingParries++;
-                                             }
-                                         }
-                                         // Track luck saves separately
-                                         if(impactOutcome.luckSave) {
-                                             runLuckSaves++;
-                                         }
-
-                                         // Calculate and apply actual HP loss
-                                         const actualHpLoss = Math.min(currentHp, impactOutcome.damageDealt);
-                                         if (actualHpLoss > 0) {
-                                             currentHp -= actualHpLoss;
-                                             runHpLost += actualHpLoss;
-                                         }
-                                     }
-                                 } // End if targeted
-                             } // End if target square hit
-                        } // End stone loop
-                        nextEventTick += TICKS_PER_RAIN_OF_STONES_EVENT;
-                    } // End if event tick
-                     if (currentHp <= 0) break;
-                } // End tick loop
-
-
-                // [ Post-turn logic (death check, regen) remains the same ]
-                 if (currentHp <= 0) {
-                     died = true;
-                     turnOfDeath = t;
-                     turnsCompleted = t;
-                     break;
-                 }
-
-                // End of Turn Regeneration
                 if (unitConfig.hpRegenPerTurnFloat > 0) {
                    hpRegenAccumulator += unitConfig.hpRegenPerTurnFloat;
                    const actualHpToRegenThisTurn = Math.floor(hpRegenAccumulator);
                    if (actualHpToRegenThisTurn > 0) {
-                       currentHp += actualHpToRegenThisTurn;
-                       currentHp = Math.min(currentHp, unitConfig.unitMaxHp);
+                       currentHp = Math.min(currentHp + actualHpToRegenThisTurn, unitConfig.unitMaxHp);
                        hpRegenAccumulator -= actualHpToRegenThisTurn;
                    }
                 }
-
                 turnsCompleted = t + 1;
-                nextEventTick -= TICKS_PER_TURN;
-
             } // End turn loop
 
-            // Return all accumulated counters for this run
-             return {
-                numTurnsCompleted: turnsCompleted,
-                died: died,
-                turnOfDeath: turnOfDeath,
+            function tallyImpact(impactOutcome) {
+                if (impactOutcome.wasTargeted) {
+                    runStonesTargetedUnit++;
+                    if (impactOutcome.wasNullifiedEthereal) runEtherealNulls++;
+                    else if (impactOutcome.wasNullifiedAirShield) runAirShieldNulls++;
+                    else if (impactOutcome.hitType === 'miss') runMisses++;
+                    else {
+                        if (impactOutcome.hitType === 'parried') {
+                            runParries++;
+                            if (impactOutcome.hitLocation === 'head') runHeadHits_Parried++; else runBodyHits_Parried++;
+                        }
+                        if (impactOutcome.hitType === 'normal_hit') {
+                            runNormalHits++;
+                            if (impactOutcome.hitLocation === 'head') runHeadHits_Normal++; else runBodyHits_Normal++;
+                        }
+                        if (impactOutcome.damageDealt > 0) {
+                            runSumDamageFromHits += impactOutcome.damageDealt;
+                            runCountDamagingHits++;
+                            if (impactOutcome.hitType === 'parried') {
+                                runSumDamageFromParries += impactOutcome.damageDealt;
+                                runCountDamagingParries++;
+                            }
+                        }
+                        if (impactOutcome.luckSave) runLuckSaves++;
+                        
+                        const actualHpLoss = Math.min(currentHp, impactOutcome.damageDealt);
+                        if (actualHpLoss > 0) {
+                            currentHp -= actualHpLoss;
+                            runHpLost += actualHpLoss;
+                        }
+                    }
+                }
+            }
+
+			return {
+                numTurnsCompleted: turnsCompleted, // <--- CORRECTED
+                died: died,                        // <--- CORRECTED (was already okay but good to be explicit)
+                turnOfDeath: turnOfDeath,          // <--- CORRECTED (was already okay)
                 runStonesTargetedUnit, runEtherealNulls, runAirShieldNulls, runMisses,
                 runParries, runNormalHits, runHpLost, runLuckSaves,
                 runHeadHits_Parried, runBodyHits_Parried, runHeadHits_Normal, runBodyHits_Normal,
@@ -624,7 +564,10 @@
                  const valueStr = inputElement.value;
                  let value;
                  if (isRequired && valueStr === "") { errorMessages.push(`${name} is required.`); return false; }
-                 if (valueStr === "" && !isRequired) return true;
+                 if (valueStr === "" && !isRequired) { // For optional fields like StonesPerEvent if we re-add it.
+                     if (id === "stonesPerEvent") unitConfig[id] = 0; // Default to 0 if empty for optional
+                     return true;
+                 }
                  value = isInt ? parseInt(valueStr) : parseFloat(valueStr);
                  if (isNaN(value)) { errorMessages.push(`${name} must be a number.`); return false; }
                  if (value < min) { errorMessages.push(`${name} must be >= ${min}.`); return false; }
@@ -639,9 +582,9 @@
             isValid &= validateInput('unitShieldParry', 0, undefined, "Unit Shield Parry Value");
             isValid &= validateInput('unitShieldProt', 0, undefined, "Unit Shield Protection");
             isValid &= validateInput('unitSize', 1, undefined, "Unit Size");
-            isValid &= validateInput('unitFatigue', 0, undefined, "Unit Fatigue"); // Added fatigue
+            isValid &= validateInput('unitFatigue', 0, undefined, "Unit Fatigue");
             isValid &= validateInput('totalSizeInSquare', 1, undefined, "Total Size of Units in Square");
-            isValid &= validateInput('stonesPerEvent', 0, undefined, "Stones every 320 ticks");
+            // No longer taking stonesPerEvent as direct input
             isValid &= validateInput('headHitChance', 0, 100, "Head Hit Chance (%)");
             isValid &= validateInput('airShieldPercent', 0, 100, "Air Shield (%)");
             isValid &= validateInput('maxTurnsToSimulate', 1, undefined, "Max Turns to Simulate");
@@ -667,7 +610,7 @@
                  resultsDiv.innerHTML = `<p style='color:red; padding: 10px;'>Please correct errors:<br>- ${errorMessages.join('<br>- ')}</p>`;
                  svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Graph requires valid inputs.</text>';
                   errorMessages.forEach(msg => {
-                     const idsToTry = ['unitMaxHp', 'unitHeadArmor', 'unitBodyArmor', 'unitShieldParry', 'unitShieldProt', 'unitSize', 'unitFatigue', 'totalSizeInSquare', 'stonesPerEvent', 'headHitChance', 'airShieldPercent', 'maxTurnsToSimulate', 'simulationRuns', 'hpRegenPerTurn'];
+                     const idsToTry = ['unitMaxHp', 'unitHeadArmor', 'unitBodyArmor', 'unitShieldParry', 'unitShieldProt', 'unitSize', 'unitFatigue', 'totalSizeInSquare', /*'stonesPerEvent',*/ 'headHitChance', 'airShieldPercent', 'maxTurnsToSimulate', 'simulationRuns', 'hpRegenPerTurn'];
                      idsToTry.forEach(id => {
                          const el = document.getElementById(id);
                          const label = document.querySelector(`label[for='${id}'] .main-label-text`);
@@ -687,7 +630,6 @@
             setTimeout(() => {
                 try {
                     // --- Initialize Global Accumulators ---
-                    // [ Initialize accumulators as before ]
                     let sumOfTurnsCompleted = 0; let deathCount = 0;
                     let sumStonesTargeted = 0; let sumEtherealNulls = 0;
                     let sumAirShieldNulls = 0; let sumMisses = 0;
@@ -703,10 +645,8 @@
 
                     // --- Run Simulations ---
                     for (let i = 0; i < unitConfig.numRuns; i++) {
-                        // [ Loop and accumulation logic remains the same ]
                         const runResult = simulateOneFullRun(unitConfig);
 
-                        // Accumulate basic stats
                         sumOfTurnsCompleted += runResult.numTurnsCompleted;
                         allSurvivalLengths.push(runResult.numTurnsCompleted);
                         if (runResult.died) {
@@ -715,12 +655,11 @@
                                 deathsAtTurnT_array[runResult.turnOfDeath]++;
                             }
                         }
-                        // Accumulate detailed outcome counts
                         sumStonesTargeted += runResult.runStonesTargetedUnit;
                         sumEtherealNulls += runResult.runEtherealNulls;
                         sumAirShieldNulls += runResult.runAirShieldNulls;
-                        sumMisses += runResult.runMisses; // Will be 0 if no shield parry value
-                        sumParries += runResult.runParries; // Will be 0 if no shield parry value
+                        sumMisses += runResult.runMisses;
+                        sumParries += runResult.runParries;
                         sumNormalHits += runResult.runNormalHits;
                         sumHpLost += runResult.runHpLost;
                         sumLuckSaves += runResult.runLuckSaves;
@@ -728,7 +667,6 @@
                         sumBodyHits_Parried += runResult.runBodyHits_Parried;
                         sumHeadHits_Normal += runResult.runHeadHits_Normal;
                         sumBodyHits_Normal += runResult.runBodyHits_Normal;
-                        // Accumulate damage stats
                         globalSumDamageFromHits += runResult.runSumDamageFromHits;
                         globalCountDamagingHits += runResult.runCountDamagingHits;
                         globalSumDamageFromParries += runResult.runSumDamageFromParries;
@@ -736,7 +674,6 @@
                     }
 
                     // --- Calculate Averages ---
-                    // [ Calculation logic remains the same ]
                     const avgSurvivalLength = sumOfTurnsCompleted / unitConfig.numRuns;
                     const deathPercentage = (deathCount / unitConfig.numRuns) * 100;
                     let stdDevSurvivalLength = 0;
@@ -746,7 +683,6 @@
                         const variance = sumOfSquaredDifferences / unitConfig.numRuns;
                         stdDevSurvivalLength = Math.sqrt(variance);
                     }
-                    // Avg Outcome Counts
                     const avgStonesTargeted = sumStonesTargeted / unitConfig.numRuns;
                     const avgEtherealNulls = sumEtherealNulls / unitConfig.numRuns;
                     const avgAirShieldNulls = sumAirShieldNulls / unitConfig.numRuns;
@@ -755,12 +691,10 @@
                     const avgNormalHits = sumNormalHits / unitConfig.numRuns;
                     const avgHpLostPerRun = sumHpLost / unitConfig.numRuns;
                     const avgLuckSaves = sumLuckSaves / unitConfig.numRuns;
-                    // Avg Hit Location Counts
                     const avgHeadHits_Parried = sumHeadHits_Parried / unitConfig.numRuns;
                     const avgBodyHits_Parried = sumBodyHits_Parried / unitConfig.numRuns;
                     const avgHeadHits_Normal = sumHeadHits_Normal / unitConfig.numRuns;
                     const avgBodyHits_Normal = sumBodyHits_Normal / unitConfig.numRuns;
-                    // Avg Damage Stats
                     const avgDamagePerDamagingHit = globalCountDamagingHits > 0 ? globalSumDamageFromHits / globalCountDamagingHits : 0;
                     const avgDamagePerDamagingParry = globalCountDamagingParries > 0 ? globalSumDamageFromParries / globalCountDamagingParries : 0;
 
@@ -773,20 +707,17 @@
                     outputHTML += `<div class="stat-item"><span class="stat-label">Std. Dev. of Survival Length:</span><span class="stat-value">${stdDevSurvivalLength.toFixed(2)}</span></div>`;
                     outputHTML += `</div>`;
 
-                    // Hit Resolution Breakdown Group
                     outputHTML += `<div class="stat-group"><h4>Hit Resolution Breakdown (Avg. per Run)</h4>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Stones Targeting Unit:</span><span class="stat-value">${avgStonesTargeted.toFixed(2)}</span></div>`;
                     if(unitConfig.isEthereal) outputHTML += `<div class="stat-item"><span class="stat-label">↳ Nullified (Ethereal):</span><span class="stat-value">${avgEtherealNulls.toFixed(2)}</span></div>`;
                     if(unitConfig.airShieldPercent > 0) outputHTML += `<div class="stat-item"><span class="stat-label">↳ Nullified (Air Shield):</span><span class="stat-value">${avgAirShieldNulls.toFixed(2)}</span></div>`;
-                     // Only show Miss/Parry if a shield with parry value exists
-                    if (unitConfig.unitShieldParry > 0) {
+                    if (unitConfig.unitShieldParry > 0) { // Only show Miss/Parry if shield has parry value
                         outputHTML += `<div class="stat-item"><span class="stat-label">↳ Missed (Attack Roll Low):</span><span class="stat-value">${avgMisses.toFixed(2)}</span></div>`;
                         outputHTML += `<div class="stat-item"><span class="stat-label">↳ Parried (Outcome):</span><span class="stat-value">${avgParries.toFixed(2)}</span></div>`;
                     }
                     outputHTML += `<div class="stat-item"><span class="stat-label">↳ Normal Hit (Outcome):</span><span class="stat-value">${avgNormalHits.toFixed(2)}</span></div>`;
                     outputHTML += `</div>`;
 
-                     // Hit Location Breakdown Group
                     const anyParries = sumParries > 0;
                     const anyNormalHits = sumNormalHits > 0;
                     if(anyParries || anyNormalHits) {
@@ -802,7 +733,6 @@
                          outputHTML += `</div>`;
                     }
 
-                    // Damage & Luck Group
                     outputHTML += `<div class="stat-group"><h4>Damage & Luck (Avg. per Run)</h4>`;
                     outputHTML += `<div class="stat-item"><span class="stat-label">Total HP Lost:</span><span class="stat-value">${avgHpLostPerRun.toFixed(2)}</span></div>`;
                     if (unitConfig.hasLuck) {
@@ -818,7 +748,6 @@
                     resultsDiv.innerHTML = outputHTML;
 
                     // --- Generate Graph Data ---
-                    // [ Graphing code remains the same ]
                     let probDyingInTurnT_graphData = []; let cumulativeProbDeadByTurnT_graphData = [];
                     let cumulativeDeaths = 0;
                     for (let t = 0; t < unitConfig.maxTurns; t++) {
@@ -828,9 +757,7 @@
                     }
                     drawSurvivalGraph(svgGraphElement, unitConfig.maxTurns, probDyingInTurnT_graphData, cumulativeProbDeadByTurnT_graphData);
 
-
                 } catch (error) {
-                     // [ Error handling code remains the same ]
                     resultsDiv.innerHTML = `<p style="color:red; padding:10px;">An error occurred: ${error.message}</p><pre>${error.stack}</pre>`;
                     svgGraphElement.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--muted-text-color)">Error generating graph.</text>';
                     console.error("Simulation error:", error);
