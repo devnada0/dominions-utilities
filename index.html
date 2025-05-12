@@ -27,9 +27,9 @@
     }
 
     .page-container {
-      max-width: 1100px; 
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 0 15px; 
+      padding: 0 15px;
     }
 
     header {
@@ -54,18 +54,18 @@
 
     .utilities-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); 
-      gap: 20px; 
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
       padding: 0;
-      margin: 0; 
+      margin: 0;
       list-style: none;
     }
 
     .utility-card {
       background-color: var(--surface-color);
       border-radius: 8px;
-      box-shadow: 0 3px 6px var(--shadow-color); 
-      padding: 20px; 
+      box-shadow: 0 3px 6px var(--shadow-color);
+      padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -74,34 +74,34 @@
     }
 
     .utility-card:hover {
-      transform: translateY(-4px); 
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); 
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
     }
 
     .utility-card h3 {
       margin-top: 0;
-      margin-bottom: 8px; 
-      font-size: 1.2em;  
+      margin-bottom: 8px;
+      font-size: 1.2em;
       color: var(--text-color);
       font-weight: 500;
     }
 
     .utility-card p {
-      font-size: 0.875em; 
+      font-size: 0.875em;
       color: var(--muted-text-color);
-      margin-bottom: 15px; 
+      margin-bottom: 15px;
       flex-grow: 1;
     }
 
     .utility-card .launch-button {
       display: inline-block;
-      padding: 8px 15px; 
+      padding: 8px 15px;
       background-color: var(--primary-color);
       color: white;
       text-decoration: none;
       border-radius: 5px;
       transition: background-color 0.2s ease;
-      font-size: 0.875em; 
+      font-size: 0.875em;
       font-weight: 500;
       text-align: center;
       border: none;
@@ -152,13 +152,11 @@
         <p>Estimate damage and unit losses from the Fire Storm battlefield spell.</p>
         <a href="firestorm-simulator/firestorm-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
-      <!-- New Card: Flames From The Sky Simulator -->
       <li class="utility-card">
         <h3>Flames From The Sky Simulator</h3>
         <p>Simulate damage and area of effect for the Flames From The Sky spell.</p>
         <a href="flamesfromthesky-simulator/flamesfromthesky-simulator.html" class="launch-button">Launch Simulator</a>
       </li>
-      <!-- End New Card -->
       <li class="utility-card">
         <h3>Magic Duel Simulator</h3>
         <p>Simulate one-round magic duels to estimate win rates and caster losses.</p>
@@ -179,6 +177,13 @@
         <p>Estimate actual unit counts from potentially inaccurate numerical scout reports.</p>
         <a href="province-report-estimator/province-report-estimator.html" class="launch-button">Launch Estimator</a>
       </li>
+      <!-- New Card: Rain of Stones Simulator -->
+      <li class="utility-card">
+        <h3>Rain of Stones Simulator</h3>
+        <p>Simulate unit survivability against the Rain of Stones battlefield effect.</p>
+        <a href="rainofstones-simulator/rainofstones.html" class="launch-button">Launch Simulator</a>
+      </li>
+      <!-- End New Card -->
       <li class="utility-card">
         <h3>Research Turn Calculator</h3>
         <p>Estimate turns to reach research goals considering difficulty and RP boosts.</p>
