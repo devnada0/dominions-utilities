@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-R">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dominions Province Report Analyzer</title>
+    <title>Dominions Scout Report Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -21,8 +21,22 @@
             max-width: 800px;
             margin: auto;
         }
-        h1, h2 {
+        h1 {
             color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        h2 {
+            color: #333;
+        }
+        h3 {
+            color: #343a40;
+            font-weight: 600;
+            font-size: 1.15rem;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
         }
         .input-group {
             margin-bottom: 15px;
@@ -43,34 +57,85 @@
             color: #666;
         }
         button {
-            background-color: #5cb85c;
+            background-color: #28a745;
             color: white;
             padding: 10px 15px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 1em;
+            display: block;
+            margin: 20px auto 0 auto;
         }
         button:hover {
-            background-color: #4cae4c;
+            background-color: #218838;
         }
-        #results, #probabilityTableOutput {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9e9e9;
+        #results, #summaryOutput, #probabilityTableOutput, #chartLegend {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #f9f9f9;
             border-radius: 4px;
+            border: 1px solid #e7e7e7;
         }
+        #chartLegend {
+             margin-top: 5px;
+             padding: 8px 15px;
+             font-size: 0.9em;
+             text-align: center;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .legend-color-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border: 1px solid #666; 
+        }
+        
+        /* Styling for Summary Statistics Definition List using CSS Grid */
+        #summaryOutput dl {
+            display: grid;
+            grid-template-columns: max-content 1fr; /* Labels take their content width, values take the rest */
+            gap: 4px 12px; /* row-gap column-gap */
+            align-items: baseline; 
+            margin: 0;
+            padding: 5px 0; 
+        }
+        #summaryOutput dt {
+            font-weight: bold;
+            color: #454545; 
+            padding: 2px 0; 
+            /* text-align: right; */ /* REMOVED this to fix wacky indentation */
+            grid-column: 1;
+        }
+        #summaryOutput dd {
+            padding: 2px 0; 
+            color: #333;
+            margin-left: 0; 
+            grid-column: 2;
+        }
+
         #probabilityTableOutput pre {
             white-space: pre-wrap;
             word-wrap: break-word;
+            line-height: 1.4;
+            margin:0; 
+        }
+        #probabilityTableOutput pre {
+            max-height: 300px;
+            overflow-y: auto;
         }
         .collapsible {
-            background-color: #f9f9f9;
+            background-color: #f0f0f0;
             color: #333;
             cursor: pointer;
             padding: 15px;
             width: 100%;
-            border: 1px solid #eee;
+            border: 1px solid #ddd;
             text-align: left;
             outline: none;
             font-size: 1.1em;
@@ -78,7 +143,7 @@
             border-radius: 4px;
         }
         .collapsible:hover {
-            background-color: #e9e9e9;
+            background-color: #e0e0e0;
         }
         .collapsible.active {
              border-bottom-left-radius: 0;
@@ -89,18 +154,22 @@
             display: none;
             overflow: hidden;
             background-color: #f9f9f9;
-            border: 1px solid #eee;
+            border: 1px solid #ddd;
             border-top: none;
             border-bottom-left-radius: 4px;
             border-bottom-right-radius: 4px;
         }
-        .documentation-content h2 { /* Target h2 inside content */
-            margin-top: 15px; /* Add some space if it's the first element */
+        .documentation-content h2, .documentation-content h3 {
+            margin-top: 15px;
+            color: #333;
+            font-weight: bold;
+            font-size: 1.1rem;
         }
         .error-message {
             color: red;
             font-weight: bold;
             margin-top: 10px;
+            text-align: center;
         }
     </style>
 </head>
@@ -113,19 +182,16 @@
             <input type="text" id="reports50" placeholder="e.g., 50 60 70 or 50,60,70">
             <div class="description">Typically: Adjacency to friendly province.</div>
         </div>
-
         <div class="input-group">
             <label for="reports40">40% Inaccuracy Reports:</label>
             <input type="text" id="reports40" placeholder="e.g., 80 90 or 80,90">
             <div class="description">Typically: Arcoscephale dominion effect (Dominion Scrying).</div>
         </div>
-
         <div class="input-group">
             <label for="reports30">30% Inaccuracy Reports:</label>
             <input type="text" id="reports30" placeholder="e.g., 100 110 or 100,110">
             <div class="description">Typically: Any friendly commander in province (not a spy).</div>
         </div>
-
         <div class="input-group">
             <label for="reports10">10% Inaccuracy Reports:</label>
             <input type="text" id="reports10" placeholder="e.g., 120 130 or 120,130">
@@ -138,45 +204,43 @@
         <div id="results"></div>
         
         <canvas id="probChart" width="400" height="200"></canvas>
+        <div id="chartLegend"></div> 
+        <div id="summaryOutput"></div>
         <div id="probabilityTableOutput"></div>
 
         <button type="button" class="collapsible">Scout Report Mechanics & Tool Explanation ▼</button>
         <div class="documentation-content">
             <h2>How this Tool Works</h2>
-            <p>This tool estimates the actual number of units in a Dominions province based on numerical scout reports with known inaccuracies. Scout reports in Dominions are rounded to the nearest multiple of 10 after an inaccuracy modifier is applied.</p>
-            <p>You can enter numbers separated by spaces or commas.</p>
-            
+            <p>This tool estimates the actual number of units (N) in a Dominions province based on numerical scout reports that have known inaccuracy percentages and are subsequently rounded by the game.</p>
+            <p>You can enter numbers separated by spaces or commas for each inaccuracy level. Reports must be multiples of 10.</p>
             <h3>Inaccuracy Levels & Typical Sources:</h3>
             <ul>
-                <li><strong>0% (The Eyes of God global, Scrying spells):</strong> Reports are exact counts, rounded to the nearest 10. (This tool doesn't explicitly ask for 0% reports as they directly indicate the rounded actual value. If you have a 0% report of '50', the actual count is likely 45-54).</li>
-                <li><strong>10% (Friendly spy in the province):</strong> Reported unit counts are modified by +/- 0-10% then rounded.</li>
-                <li><strong>30% (Any friendly commander in province):</strong> Reported unit counts are modified by +/- 0-30% then rounded.</li>
-                <li><strong>40% (Arcoscephale dominion effect):</strong> Reported unit counts are modified by +/- 0-40% then rounded.</li>
-                <li><strong>50% (Other cases - e.g., Adjacency to friendly province, friendly fortress under siege):</strong> Reported unit counts are modified by +/- 0-50% then rounded.</li>
+                <li><strong>10% (Friendly spy in the province):</strong> Reported unit counts are modified by +/- 0-10% of actual, then rounded to the nearest 10.</li>
+                <li><strong>30% (Any friendly commander in province):</strong> Reported unit counts are modified by +/- 0-30% of actual, then rounded to the nearest 10.</li>
+                <li><strong>40% (Arcoscephale dominion effect):</strong> Reported unit counts are modified by +/- 0-40% of actual, then rounded to the nearest 10.</li>
+                <li><strong>50% (Other cases - e.g., Adjacency to friendly province, friendly fortress under siege):</strong> Reported unit counts are modified by +/- 0-50% of actual, then rounded to the nearest 10.</li>
             </ul>
             <p>The "commander name" is reported if the method's inaccuracy is less than 30% (i.e., from 0% or 10% inaccuracy methods).</p>
-
             <h3>Calculation Steps:</h3>
             <ol>
-                <li>You input the reported unit counts for each known inaccuracy level.</li>
-                <li>The tool determines a plausible range of actual unit counts (N), typically from 10 up to a value derived from the highest reported count and highest possible error. It considers N in multiples of 10.</li>
-                <li>For each potential actual unit count N:
-                    <ul>
-                        <li>It simulates the scouting process: For a given N and an error percentage (e.g., 50%), it calculates all possible reported values by applying an error modifier from -X% to +X% (where X is the error percentage) to N, and then rounding the result to the nearest 10.</li>
-                        <li>It determines the probability of observing one of *your specific entered reports* if the actual count was N and it underwent that error process. For instance, if N=100 and error=50%, what's the chance the report shows 70?</li>
-                    </ul>
-                </li>
-                <li>If you provide multiple reports, the tool assumes they are independent observations of the same underlying true count N. It multiplies the probabilities of observing each of your entered reports for a given N. If any report is impossible to obtain from N with its specified error, that N is discarded (probability becomes 0).</li>
-                <li>The resulting probabilities for each N are then normalized (so they sum to 1) to give a posterior probability distribution for the actual number of units.</li>
+                <li>You input reported unit counts (multiples of 10).</li>
+                <li>The tool determines a plausible range of actual unit counts (N), analyzed in steps of 1.</li>
+                <li>For each N, it simulates scouting: applies error modifiers (-X% to +X%), rounds to the nearest 10, and calculates the probability of observing your entered reports.</li>
+                <li>Probabilities for multiple reports (assumed independent) are multiplied.</li>
+                <li>Results are normalized to give a posterior probability distribution for N.</li>
+                <li>Summary statistics are calculated. Chart bars are colored to indicate SD ranges, explained in a legend below the chart.</li>
             </ol>
-            <p><strong>Note:</strong> The tool assumes the error modifier (e.g., the exact value between -50% and +50%) is uniformly distributed. It samples 101 points in this error range for its calculations. The rounding to the nearest 10 uses standard rounding (e.g., 45 rounds to 50, 44 rounds to 40).</p>
+            <p><strong>Note:</strong> Error modifiers are assumed uniformly distributed. Rounding is standard (e.g., 45 to 50).</p>
         </div>
     </div>
 
     <script>
         let probChartInstance = null;
 
-        // --- Collapsible script ---
+        const colorWithin1SD = '#007bff'; 
+        const colorWithin2SD = '#fd7e14'; 
+        const colorOutside2SD = '#b0b0b0';
+
         document.addEventListener('DOMContentLoaded', (event) => {
             const coll = document.querySelector(".collapsible");
             coll.addEventListener("click", function() {
@@ -192,21 +256,15 @@
             });
         });
 
-
         function getScoutReportsFromInput(inputId) {
             const reportsInput = document.getElementById(inputId).value;
-            if (!reportsInput.trim()) {
-                return [];
-            }
-            // Split by both commas and spaces, and filter out any empty strings
+            if (!reportsInput.trim()) { return []; }
             const reportStrings = reportsInput.replace(/,/g, " ").split(/\s+/).filter(x => x.trim() !== "");
-            
             const reports = [];
             for (const str of reportStrings) {
                 const num = parseInt(str.trim());
-                if (isNaN(num)) {
-                    throw new Error(`Invalid non-numeric input found: '${str}' in field for ${inputId}. Please enter integers separated by commas or spaces.`);
-                }
+                if (isNaN(num)) { throw new Error(`Invalid non-numeric input: '${str}' in field for ${inputId}.`); }
+                if (num % 10 !== 0 && num > 0) { throw new Error(`Invalid report: '${str}' in field for ${inputId}. Reports must be multiples of 10 (or 0).`);}
                 reports.push(num);
             }
             return reports;
@@ -216,22 +274,27 @@
             const errorSamples = 101; 
             let possibleReportCounts = {};
             let totalSamples = 0;
-
             for (let i = 0; i < errorSamples; i++) {
                 const errorModifier = -errorPercentDecimal + (2 * errorPercentDecimal * i / (errorSamples - 1));
                 const modifiedN = N * (1 + errorModifier);
                 const roundedReport = 10 * Math.round(modifiedN / 10);
-                
                 possibleReportCounts[roundedReport] = (possibleReportCounts[roundedReport] || 0) + 1;
                 totalSamples++;
             }
-
-            const prob = (possibleReportCounts[reportedUnit] || 0) / totalSamples;
-            return prob;
+            return (possibleReportCounts[reportedUnit] || 0) / totalSamples;
         }
 
         function calculateProbabilities() {
             document.getElementById('errorMessage').textContent = ''; 
+            document.getElementById('summaryOutput').innerHTML = '';
+            document.getElementById('probabilityTableOutput').innerHTML = "";
+            document.getElementById('results').textContent = ""; 
+            document.getElementById('chartLegend').innerHTML = ""; 
+            if (probChartInstance) {
+                probChartInstance.destroy();
+                probChartInstance = null;
+            }
+
             try {
                 const reports50 = getScoutReportsFromInput('reports50');
                 const reports40 = getScoutReportsFromInput('reports40');
@@ -246,29 +309,33 @@
                 ];
 
                 if (allScoutReports.length === 0) {
-                    document.getElementById('results').textContent = "No scout reports entered. Please input some reported unit counts.";
-                    document.getElementById('probabilityTableOutput').innerHTML = "";
-                    if (probChartInstance) {
-                        probChartInstance.destroy();
-                        probChartInstance = null;
-                    }
+                    document.getElementById('results').textContent = "No scout reports entered.";
                     return;
                 }
 
+                const N_step = 1; 
+                const max_error_for_range_estimation = 0.50; 
                 const minReportVal = Math.min(...allScoutReports.map(item => item.report));
                 const maxReportVal = Math.max(...allScoutReports.map(item => item.report));
                 
-                let N_min = Math.floor((minReportVal / (1 + 0.50)) / 10) * 10; 
-                let N_max = Math.ceil((maxReportVal / (1 - 0.50)) / 10) * 10; 
+                let N_min_iteration = Math.floor((minReportVal - 4.999999) / (1 + max_error_for_range_estimation));
+                N_min_iteration = Math.max(1, N_min_iteration);
+                let N_max_iteration = Math.ceil((maxReportVal + 4.999999) / (1 - max_error_for_range_estimation));
+                N_max_iteration = Math.max(N_min_iteration, N_max_iteration); 
 
-                N_min = Math.max(N_min, 10); 
-                N_max = Math.max(N_max, N_min + 10); 
+                if (N_max_iteration === N_min_iteration) {
+                    N_max_iteration = N_min_iteration + Math.max(N_step * 9, 9); 
+                }
+                N_max_iteration = Math.min(N_max_iteration, N_min_iteration + 500);
 
-                document.getElementById('results').textContent = `Possible actual unit counts (N) being analyzed range from ${N_min} to ${N_max} (in steps of 10).`;
+                document.getElementById('results').textContent = `Analyzing N from ${N_min_iteration} to ${N_max_iteration} (steps of ${N_step}).`;
 
                 const N_values = [];
-                for (let N = N_min; N <= N_max; N += 10) {
-                    N_values.push(N);
+                for (let N = N_min_iteration; N <= N_max_iteration; N += N_step) { N_values.push(N); }
+                
+                if (N_values.length === 0) {
+                     document.getElementById('errorMessage').textContent = "Could not determine a valid range of N.";
+                     return;
                 }
 
                 let probabilities = {};
@@ -276,94 +343,112 @@
                     let total_prob_N = 1;
                     for (const item of allScoutReports) {
                         const prob = probabilityOfReport(N, item.report, item.errorRate);
-                        if (prob === 0) {
-                            total_prob_N = 0;
-                            break;
-                        }
+                        if (prob === 0) { total_prob_N = 0; break; }
                         total_prob_N *= prob;
                     }
-                    if (total_prob_N > 0) { 
-                         probabilities[N] = total_prob_N;
-                    }
+                    if (total_prob_N > 0) { probabilities[N] = total_prob_N; }
                 });
                 
                 const validNs = Object.keys(probabilities).map(Number);
                 if (validNs.length === 0) {
-                     document.getElementById('errorMessage').textContent = "No possible actual unit counts could produce all the given scout reports with the specified error percentages. This might indicate inconsistent reports (e.g., a low-error report significantly contradicting a high-error report) or reports that are impossible given the mechanics (e.g., a report of 5 from a 50% error source for a small true N).";
-                     document.getElementById('probabilityTableOutput').innerHTML = "";
-                     if (probChartInstance) {
-                        probChartInstance.destroy();
-                        probChartInstance = null;
-                     }
+                     document.getElementById('errorMessage').textContent = "No possible N could produce all given reports.";
                      return;
                 }
 
                 const totalProbSum = Object.values(probabilities).reduce((sum, p) => sum + p, 0);
-
-                if (totalProbSum > 0) {
-                    for (const N_key in probabilities) { // N_key will be string, ensure using number for calc
-                        probabilities[N_key] /= totalProbSum;
-                    }
-                } else {
-                     // This case should ideally be caught by validNs.length === 0
-                    document.getElementById('errorMessage').textContent = "No possible actual unit counts could produce the given scout reports (all probabilities summed to zero).";
-                    document.getElementById('probabilityTableOutput').innerHTML = "";
-                     if (probChartInstance) {
-                        probChartInstance.destroy();
-                        probChartInstance = null;
-                    }
+                if (totalProbSum <= 0) {
+                    document.getElementById('errorMessage').textContent = "Probabilities summed to non-positive value. Cannot normalize.";
                     return;
                 }
+                for (const N_key in probabilities) { probabilities[N_key] /= totalProbSum; }
                 
                 const sorted_N_keys = Object.keys(probabilities).map(Number).sort((a, b) => a - b);
                 const sorted_probs_values = sorted_N_keys.map(N_key => probabilities[N_key]);
 
+                let modeN = -1, maxProb = -1, meanN = 0, varianceN = 0;
+                sorted_N_keys.forEach(N_key => {
+                    const prob = probabilities[N_key];
+                    if (prob > maxProb) { maxProb = prob; modeN = N_key; }
+                    meanN += N_key * prob;
+                });
+                sorted_N_keys.forEach(N_key => {
+                    varianceN += Math.pow(N_key - meanN, 2) * probabilities[N_key];
+                });
+                const stdDevN = Math.sqrt(varianceN);
+
+                const range1SD_lower_calc = meanN - stdDevN;
+                const range1SD_upper_calc = meanN + stdDevN;
+                const range2SD_lower_calc = meanN - 2 * stdDevN;
+                const range2SD_upper_calc = meanN + 2 * stdDevN;
+
+                let legendHTML = `<span class="legend-item"><span class="legend-color-box" style="background-color:${colorWithin1SD};"></span> Within 1SD</span>`;
+                legendHTML += `<span class="legend-item"><span class="legend-color-box" style="background-color:${colorWithin2SD};"></span> Within 2SD</span>`;
+                legendHTML += `<span class="legend-item"><span class="legend-color-box" style="background-color:${colorOutside2SD};"></span> Outside 2SD</span>`;
+                document.getElementById('chartLegend').innerHTML = legendHTML;
+                
+                let summaryHTML = "<h3>Summary Statistics</h3><dl>";
+                summaryHTML += `<dt>Most Likely N (Mode):</dt><dd>${modeN} (Prob: ${maxProb.toFixed(4)})</dd>`;
+                summaryHTML += `<dt>Mean N (Expected Value):</dt><dd>${meanN.toFixed(2)}</dd>`;
+                summaryHTML += `<dt>Standard Deviation:</dt><dd>${stdDevN.toFixed(2)}</dd>`;
+                summaryHTML += `<dt>Mean ± 1 SD Range:</dt><dd>${range1SD_lower_calc.toFixed(2)} to ${range1SD_upper_calc.toFixed(2)}</dd>`;
+                summaryHTML += `<dt>Mean ± 2 SD Range:</dt><dd>${range2SD_lower_calc.toFixed(2)} to ${range2SD_upper_calc.toFixed(2)}</dd>`;
+                summaryHTML += "</dl>";
+                document.getElementById('summaryOutput').innerHTML = summaryHTML;
+                
+                const barColors = sorted_N_keys.map(N_key => {
+                    if (N_key >= range1SD_lower_calc && N_key <= range1SD_upper_calc) return colorWithin1SD;
+                    if (N_key >= range2SD_lower_calc && N_key <= range2SD_upper_calc) return colorWithin2SD;
+                    return colorOutside2SD;
+                });
+                
                 const ctx = document.getElementById('probChart').getContext('2d');
-                if (probChartInstance) {
-                    probChartInstance.destroy();
-                }
                 probChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: sorted_N_keys,
                         datasets: [{
-                            label: 'Probability of Actual Unit Count (N)',
                             data: sorted_probs_values,
-                            backgroundColor: 'skyblue',
-                            borderColor: 'blue',
-                            borderWidth: 1
+                            backgroundColor: barColors,
+                            borderColor: '#555', 
+                            borderWidth: 0.25
                         }]
                     },
                     options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: 'Probability' }
-                            },
-                            x: {
-                                title: { display: true, text: 'Actual Number of Units (N)' }
-                            }
+                        plugins: {
+                            title: { display: true, text: 'Probability of Actual Unit Count (N)', font: { size: 16 }, padding: { top: 10, bottom: 10 } },
+                            subtitle: { display: false }, 
+                            legend: { display: false },
+                            tooltip: { enabled: true }
                         },
-                        responsive: true,
-                        maintainAspectRatio: true 
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Probability' }},
+                            x: { title: { display: true, text: 'Actual Number of Units (N)' }}
+                        },
+                        responsive: true, maintainAspectRatio: true 
                     }
                 });
 
-                let tableHTML = "<h2>Probability Distribution:</h2><pre>";
+                let tableHTML = "<h3>Probability Distribution (P > 0.0001%)</h3><pre>";
+                let itemsInTable = 0;
                 sorted_N_keys.forEach(N_key => {
-                    tableHTML += `Actual Units: ${N_key}, Probability: ${probabilities[N_key].toFixed(6)}\n`;
+                    if(probabilities[N_key] > 0.000001) { 
+                        tableHTML += `Actual Units: ${N_key}, Probability: ${probabilities[N_key].toFixed(6)}\n`;
+                        itemsInTable++;
+                    }
                 });
+                if (itemsInTable === 0 && sorted_N_keys.length > 0) { 
+                    tableHTML += `(All probabilities < 0.000001)\n`;
+                    sorted_N_keys.slice(0,10).forEach(N_key => {
+                         tableHTML += `${N_key}: ${probabilities[N_key].toExponential(3)}\n`;
+                    });
+                    if(sorted_N_keys.length > 10) tableHTML += `... and more\n`;
+                }
                 tableHTML += "</pre>";
                 document.getElementById('probabilityTableOutput').innerHTML = tableHTML;
 
-            } catch (error) {
+            } catch (error) { 
                 console.error("Error during calculation:", error);
                 document.getElementById('errorMessage').textContent = `Error: ${error.message || "An unexpected error occurred."}`;
-                 if (probChartInstance) { // Clear chart on error too
-                    probChartInstance.destroy();
-                    probChartInstance = null;
-                }
-                document.getElementById('probabilityTableOutput').innerHTML = ""; // Clear table
             }
         }
     </script>
