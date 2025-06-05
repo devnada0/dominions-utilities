@@ -46,7 +46,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .input-group input[type="text"] {
+        .input-group input[type="text"], .input-group input[type="number"] {
             width: calc(100% - 22px);
             padding: 10px;
             border: 1px solid #ddd;
@@ -96,11 +96,10 @@
             border: 1px solid #666; 
         }
         
-        /* Styling for Summary Statistics Definition List using CSS Grid */
         #summaryOutput dl {
             display: grid;
-            grid-template-columns: max-content 1fr; /* Labels take their content width, values take the rest */
-            gap: 4px 12px; /* row-gap column-gap */
+            grid-template-columns: max-content 1fr; 
+            gap: 4px 12px; 
             align-items: baseline; 
             margin: 0;
             padding: 5px 0; 
@@ -109,7 +108,6 @@
             font-weight: bold;
             color: #454545; 
             padding: 2px 0; 
-            /* text-align: right; */ /* REMOVED this to fix wacky indentation */
             grid-column: 1;
         }
         #summaryOutput dd {
@@ -180,24 +178,30 @@
         <div class="input-group">
             <label for="reports50">50% Inaccuracy Reports:</label>
             <input type="text" id="reports50" placeholder="e.g., 50 60 70 or 50,60,70">
-            <div class="description">Typically: Adjacency to friendly province.</div>
+            <div class="description">Typically: Adjacency to friendly province. Corresponds to a 50 in game formula.</div>
         </div>
         <div class="input-group">
             <label for="reports40">40% Inaccuracy Reports:</label>
             <input type="text" id="reports40" placeholder="e.g., 80 90 or 80,90">
-            <div class="description">Typically: Arcoscephale dominion effect (Dominion Scrying).</div>
+            <div class="description">Typically: Arcoscephale dominion effect (Dominion Scrying). Corresponds to a 40 in game formula.</div>
         </div>
         <div class="input-group">
             <label for="reports30">30% Inaccuracy Reports:</label>
             <input type="text" id="reports30" placeholder="e.g., 100 110 or 100,110">
-            <div class="description">Typically: Any friendly commander in province (not a spy).</div>
+            <div class="description">Typically: Any friendly commander in province (not a spy). Corresponds to a 30 in game formula.</div>
         </div>
         <div class="input-group">
             <label for="reports10">10% Inaccuracy Reports:</label>
             <input type="text" id="reports10" placeholder="e.g., 120 130 or 120,130">
-            <div class="description">Typically: Friendly spy in province.</div>
+            <div class="description">Typically: Friendly spy in province. Corresponds to a 10 in game formula.</div>
         </div>
         
+        <div class="input-group">
+            <label for="simulationRolls">Simulation Rolls per Check:</label>
+            <input type="number" id="simulationRolls" value="5000" min="1" step="100">
+            <div class="description">Higher values increase precision but reduce speed (default: 5000). For meaningful results, use at least 200.</div>
+        </div>
+
         <button onclick="calculateProbabilities()">Calculate Probabilities</button>
 
         <div id="errorMessage" class="error-message"></div>
@@ -210,27 +214,42 @@
 
         <button type="button" class="collapsible">Scout Report Mechanics & Tool Explanation ▼</button>
         <div class="documentation-content">
-            <h2>How this Tool Works</h2>
-            <p>This tool estimates the actual number of units (N) in a Dominions province based on numerical scout reports that have known inaccuracy percentages and are subsequently rounded by the game.</p>
-            <p>You can enter numbers separated by spaces or commas for each inaccuracy level. Reports must be multiples of 10.</p>
-            <h3>Inaccuracy Levels & Typical Sources:</h3>
-            <ul>
-                <li><strong>10% (Friendly spy in the province):</strong> Reported unit counts are modified by +/- 0-10% of actual, then rounded to the nearest 10.</li>
-                <li><strong>30% (Any friendly commander in province):</strong> Reported unit counts are modified by +/- 0-30% of actual, then rounded to the nearest 10.</li>
-                <li><strong>40% (Arcoscephale dominion effect):</strong> Reported unit counts are modified by +/- 0-40% of actual, then rounded to the nearest 10.</li>
-                <li><strong>50% (Other cases - e.g., Adjacency to friendly province, friendly fortress under siege):</strong> Reported unit counts are modified by +/- 0-50% of actual, then rounded to the nearest 10.</li>
-            </ul>
-            <p>The "commander name" is reported if the method's inaccuracy is less than 30% (i.e., from 0% or 10% inaccuracy methods).</p>
-            <h3>Calculation Steps:</h3>
+            
+            <!-- **** START OF REVISED DOCUMENTATION **** -->
+            <h2>How This Tool Works</h2>
+            <p>This tool performs a probabilistic analysis to estimate the actual number of units (N) that most likely produced the scout report(s) you observed. It uses a detailed model of the game's internal scouting math to do this.</p>
+            <p>The process can be summarized in these high-level steps:</p>
             <ol>
-                <li>You input reported unit counts (multiples of 10).</li>
-                <li>The tool determines a plausible range of actual unit counts (N), analyzed in steps of 1.</li>
-                <li>For each N, it simulates scouting: applies error modifiers (-X% to +X%), rounds to the nearest 10, and calculates the probability of observing your entered reports.</li>
-                <li>Probabilities for multiple reports (assumed independent) are multiplied.</li>
-                <li>Results are normalized to give a posterior probability distribution for N.</li>
-                <li>Summary statistics are calculated. Chart bars are colored to indicate SD ranges, explained in a legend below the chart.</li>
+                <li><strong>The Question:</strong> The tool starts with the question: "Given the scout report(s) I saw, what was the most likely actual number of units?"</li>
+                <li><strong>The Method:</strong> To answer this, it tests a wide range of possible "actual numbers" (N).</li>
+                <li><strong>The Simulation:</strong> For each possible "actual number," it runs a simulation of the game's error mechanics thousands of times (this is the "Simulation Rolls" setting) to see how often it would produce the report(s) you entered.</li>
+                <li><strong>The Result:</strong> The "actual numbers" that most frequently produced your reports are considered the most probable. The tool displays these probabilities on the graph and in the summary statistics.</li>
             </ol>
-            <p><strong>Note:</strong> Error modifiers are assumed uniformly distributed. Rounding is standard (e.g., 45 to 50).</p>
+
+            <h3>Why the 'Most Likely N' Can Be Different From Your Report</h3>
+            <p>A common observation is that the most likely actual number (the peak of the graph) is often different from the reported number, especially with high inaccuracy. This is not an error, but a result of the game's error mechanics.</p>
+            <p>The primary reason is that the error applied is proportional to the actual number (N). This means larger armies have a much wider absolute range of possible outcomes after the error is applied. The final reported number is rounded to the nearest 10, which creates fixed-width "buckets" (e.g., values from 45 to 54 all round to 50). For a large actual N, its wide spread of outcomes gets "diluted" across many different buckets, so the probability of landing in any single one is lower. A smaller actual N has a narrower spread, and can therefore be a more statistically "efficient" generator of a specific report that is higher than itself.</p>
+
+            <h3>Understanding Mean vs. Mode (Most Likely N)</h3>
+            <p>The probability distributions shown are often skewed, not symmetrical. This can cause the summary statistics to seem counter-intuitive.</p>
+            <ul>
+                <li>The <strong>Mode (Most Likely N)</strong> is the single highest bar on the graph – the single most probable actual number.</li>
+                <li>The <strong>Mean (Average N)</strong> is the "balance point" of the entire distribution. The graph often has a long "tail" of low probabilities for very high N values. These high N values, even with low probability, pull the weighted average (the Mean) significantly away from the peak (the Mode).</li>
+            </ul>
+            
+            <h3>Inaccuracy Levels & Typical Sources</h3>
+            <p>The inaccuracy percentage corresponds to a value used in the game's internal formula.</p>
+            <ul>
+                <li>10: Friendly spy in the province.</li>
+                <li>30: Any friendly commander in province (not a spy).</li>
+                <li>40: Arcoscephale dominion effect (Dominion Scrying).</li>
+                <li>50: Other cases (e.g., Adjacency to friendly province).</li>
+            </ul>
+
+            <h3>Important Limitations</h3>
+            <p>This tool does NOT account for False Army, Obfuscate, Glamour, or Fata Morgana effects. The 'N' it estimates is the base number to which the percentage error was applied.</p>
+            <!-- **** END OF REVISED DOCUMENTATION **** -->
+
         </div>
     </div>
 
@@ -270,18 +289,33 @@
             return reports;
         }
 
-        function probabilityOfReport(N, reportedUnit, errorPercentDecimal) {
-            const errorSamples = 101; 
-            let possibleReportCounts = {};
-            let totalSamples = 0;
-            for (let i = 0; i < errorSamples; i++) {
-                const errorModifier = -errorPercentDecimal + (2 * errorPercentDecimal * i / (errorSamples - 1));
-                const modifiedN = N * (1 + errorModifier);
-                const roundedReport = 10 * Math.round(modifiedN / 10);
-                possibleReportCounts[roundedReport] = (possibleReportCounts[roundedReport] || 0) + 1;
-                totalSamples++;
+        function probabilityOfReport(N_true_number, reportedUnitObserved, inaccuracyPercentageGame, num_simulation_rolls) {
+            let matchCount = 0;
+
+            if (N_true_number <= 0) {
+                if (reportedUnitObserved === 0) return 1; 
+                return 0;
             }
-            return (possibleReportCounts[reportedUnit] || 0) / totalSamples;
+
+            for (let i = 0; i < num_simulation_rolls; i++) {
+                const accuracy_roll = Math.floor(Math.random() * 200) - 100; 
+                const raw_error_value = (accuracy_roll * inaccuracyPercentageGame * N_true_number) / 10000.0;
+                const applied_error = Math.floor(raw_error_value);
+                let units_after_error = N_true_number + applied_error;
+
+                let final_reported_number_simulated;
+                if (units_after_error <= 0) { 
+                    final_reported_number_simulated = 0; 
+                } else {
+                    final_reported_number_simulated = 10 * Math.round(units_after_error / 10);
+                }
+
+                if (final_reported_number_simulated === reportedUnitObserved) {
+                    matchCount++;
+                }
+            }
+            if (num_simulation_rolls === 0) return 0;
+            return matchCount / num_simulation_rolls;
         }
 
         function calculateProbabilities() {
@@ -296,16 +330,24 @@
             }
 
             try {
+                // **** BUG FIX: Changed validation to allow low numbers ****
+                let num_simulation_rolls = parseInt(document.getElementById('simulationRolls').value);
+                if (isNaN(num_simulation_rolls) || num_simulation_rolls < 1) {
+                    num_simulation_rolls = 5000; 
+                    document.getElementById('simulationRolls').value = num_simulation_rolls;
+                }
+                // **** END BUG FIX ****
+
                 const reports50 = getScoutReportsFromInput('reports50');
                 const reports40 = getScoutReportsFromInput('reports40');
                 const reports30 = getScoutReportsFromInput('reports30');
                 const reports10 = getScoutReportsFromInput('reports10');
 
                 const allScoutReports = [
-                    ...reports50.map(r => ({ report: r, errorRate: 0.50 })),
-                    ...reports40.map(r => ({ report: r, errorRate: 0.40 })),
-                    ...reports30.map(r => ({ report: r, errorRate: 0.30 })),
-                    ...reports10.map(r => ({ report: r, errorRate: 0.10 }))
+                    ...reports50.map(r => ({ report: r, errorRate: 50 })),
+                    ...reports40.map(r => ({ report: r, errorRate: 40 })),
+                    ...reports30.map(r => ({ report: r, errorRate: 30 })),
+                    ...reports10.map(r => ({ report: r, errorRate: 10 }))
                 ];
 
                 if (allScoutReports.length === 0) {
@@ -314,27 +356,29 @@
                 }
 
                 const N_step = 1; 
-                const max_error_for_range_estimation = 0.50; 
+                const max_error_for_range_estimation_decimal = 0.50; 
                 const minReportVal = Math.min(...allScoutReports.map(item => item.report));
                 const maxReportVal = Math.max(...allScoutReports.map(item => item.report));
                 
-                let N_min_iteration = Math.floor((minReportVal - 4.999999) / (1 + max_error_for_range_estimation));
+                let N_min_iteration = Math.floor((minReportVal - 4.999999) / (1 + max_error_for_range_estimation_decimal));
                 N_min_iteration = Math.max(1, N_min_iteration);
-                let N_max_iteration = Math.ceil((maxReportVal + 4.999999) / (1 - max_error_for_range_estimation));
-                N_max_iteration = Math.max(N_min_iteration, N_max_iteration); 
+                let N_max_iteration = Math.ceil((maxReportVal + 4.999999) / (1 - max_error_for_range_estimation_decimal));
+                N_max_iteration = Math.max(N_min_iteration + N_step -1, N_max_iteration); 
 
-                if (N_max_iteration === N_min_iteration) {
-                    N_max_iteration = N_min_iteration + Math.max(N_step * 9, 9); 
+                if (N_max_iteration === N_min_iteration && N_min_iteration > 1) {
+                     N_max_iteration = N_min_iteration + Math.max(N_step * 9, 9); 
+                } else if (N_max_iteration === N_min_iteration && N_min_iteration === 1) {
+                    N_max_iteration = Math.max(10, (maxReportVal > 0 ? maxReportVal * 2 : 10) ); 
                 }
                 N_max_iteration = Math.min(N_max_iteration, N_min_iteration + 500);
 
-                document.getElementById('results').textContent = `Analyzing N from ${N_min_iteration} to ${N_max_iteration} (steps of ${N_step}).`;
+                document.getElementById('results').textContent = `Analyzing N from ${N_min_iteration} to ${N_max_iteration} (steps of ${N_step}) using ${num_simulation_rolls} simulation rolls per check.`;
 
                 const N_values = [];
                 for (let N = N_min_iteration; N <= N_max_iteration; N += N_step) { N_values.push(N); }
                 
                 if (N_values.length === 0) {
-                     document.getElementById('errorMessage').textContent = "Could not determine a valid range of N.";
+                     document.getElementById('errorMessage').textContent = "Could not determine a valid range of N to analyze.";
                      return;
                 }
 
@@ -342,7 +386,7 @@
                 N_values.forEach(N => {
                     let total_prob_N = 1;
                     for (const item of allScoutReports) {
-                        const prob = probabilityOfReport(N, item.report, item.errorRate);
+                        const prob = probabilityOfReport(N, item.report, item.errorRate, num_simulation_rolls);
                         if (prob === 0) { total_prob_N = 0; break; }
                         total_prob_N *= prob;
                     }
@@ -351,13 +395,13 @@
                 
                 const validNs = Object.keys(probabilities).map(Number);
                 if (validNs.length === 0) {
-                     document.getElementById('errorMessage').textContent = "No possible N could produce all given reports.";
+                     document.getElementById('errorMessage').textContent = "No possible N could produce all given reports with the current simulation parameters.";
                      return;
                 }
 
                 const totalProbSum = Object.values(probabilities).reduce((sum, p) => sum + p, 0);
                 if (totalProbSum <= 0) {
-                    document.getElementById('errorMessage').textContent = "Probabilities summed to non-positive value. Cannot normalize.";
+                    document.getElementById('errorMessage').textContent = "Probabilities summed to a non-positive value. Cannot normalize.";
                     return;
                 }
                 for (const N_key in probabilities) { probabilities[N_key] /= totalProbSum; }
